@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, MetaData, Table, Column, String, Float, Da
 # ==============================================================================
 p_from = '1900-01-01'
 p_to = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-apikey = "0RU79WomyvojlRcstiO0IpgAg1O4aIuA"
+apikey = "YOURAPIKEY"
 
 getdates = 'range' #(today/ range)
 getvalues = 'forex' #(crypto / forex)
