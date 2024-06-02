@@ -135,6 +135,8 @@ exchange_table = Table(
     Column('low', Float),
     Column('high', Float),
     Column('change', Float),
+    Column('changepercent', Float),
+    Column('changesymbol', Float),
     Column('ma10', Float),
     Column('ma20', Float),
     Column('ma50', Float),
