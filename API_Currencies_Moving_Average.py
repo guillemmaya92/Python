@@ -9,11 +9,11 @@ from sqlalchemy import create_engine, MetaData, Table, Column, String, Float, Da
 # ==============================================================================
 p_from = '1900-01-01'
 p_to = (datetime.today() - timedelta(days=1)).strftime('%Y-%m-%d')
-apikey = "YOURAPIKEY"
+apikey = "0RU79WomyvojlRcstiO0IpgAg1O4aIuA"
 
 getdates = 'range' #(today/ range)
-getvalues = 'forex' #(crypto / forex)
-getall = True #(True, False)
+getvalues = 'crypto' #(crypto / forex)
+getall = False #(True, False)
 
 # Get Values
 # ==============================================================================
@@ -70,10 +70,14 @@ for i in coin_list:
     df['ma100'] = df['close'].rolling(window=100, min_periods=1).mean()
     df['ma200'] = df['close'].rolling(window=200, min_periods=1).mean()
     df['ma300'] = df['close'].rolling(window=300, min_periods=1).mean()
+    df['open'] = df.groupby('symbol')['close'].shift(1).fillna(df['open'])
+    df['change'] = df['close'] - df['open']
+    df['changepercent'] = (df['close'] - df['open']) / df['open']
+    df['changesign'] = df['change'].apply(lambda x: '+' if x > 0 else '-' if x < 0 else '=')
 
     # Select and rename columns
-    df = df[['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changePercent', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300']]
-    df.columns = ['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changepercent', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300']
+    df = df[['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changepercent', 'changesign', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300']]
+    df.columns = ['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changepercent', 'changesign', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300']
 
     # Format columns
     df['date'] = pd.to_datetime(df['date']).dt.date
@@ -102,7 +106,7 @@ for i in coin_list:
 if dfs:  # Check if dfs list is not empty
     df = pd.concat(dfs, ignore_index=True)
 else:
-    df = pd.DataFrame(columns=['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changepercent', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300'])
+    df = pd.DataFrame(columns=['symbol', 'date', 'open', 'close', 'low', 'high', 'volume', 'change', 'changepercent', 'changesign', 'ma10', 'ma20', 'ma50', 'ma100', 'ma200', 'ma300'])
 
 # Sorting by date ascending
 df = df.sort_values(by='date', ascending=True)
