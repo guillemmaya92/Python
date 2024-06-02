@@ -110,9 +110,9 @@ df = df.sort_values(by='date', ascending=True)
 # SQL Server connection
 # ==============================================================================
 # SQL Server connection details
-server = '10.0.0.1'
-database = 'informes'
-table_name = 'H_Currencies' if getvalues == 'forex' else 'H_Cryptos'
+server = 'localhost'
+database = 'database'
+table_name = 'H_Forex' if getvalues == 'forex' else 'H_Crypto'
     
 # Create a connection string using username and password
 engine_url = f'mssql+pyodbc://@{server}/{database}?driver=ODBC+Driver+17+for+SQL+Server&trusted_connection=yes'
