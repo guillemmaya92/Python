@@ -65,9 +65,21 @@ btc['days'] = btc.groupby('halving').cumcount() + 1
 btc['closelog'] = np.log10(btc['close'])
 btc = btc[btc['halving'] >= 1]
 
-# Graph 1 - PLOTNINE
+# Graph 1
 # ==============================================================================
 # Plot a graph
+# Calculate maximum closelog and days for each halving
+max_vals = btc.groupby('halving').agg({'closelog': 'last', 'days': 'max'}).reset_index()
+
+# Dictionary to hold halving labels
+halving_labels = {
+    0: 'Introduction',
+    1: '1st Halving',
+    2: '2nd Halving',
+    3: '3rd Halving',
+    4: '4th Halving'
+}
+
 plot = (
     p9.ggplot(btc, p9.aes(x='days', y='closelog', color='factor(halving)'))
     + p9.geom_rect(
@@ -114,6 +126,7 @@ plot = (
             4: '4th: 2024-04-20 to present' # 4th Halving
         }
     )
+    + [p9.annotate('text', x=row['days']+60, y=row['closelog'], label=halving_labels[row['halving']], ha='center', va='top', size=8) for idx, row in max_vals.iterrows()]
     + p9.theme(
         figure_size=(16, 9),
         axis_text_x=p9.element_text(rotation=45, hjust=1),
@@ -126,7 +139,7 @@ plot = (
 # Print it!
 print(plot)
 
-# Graph 2 - SEABORN
+# Graph 2
 # ==============================================================================
 # Font Style
 plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans'], 'font.size': 10})
@@ -156,10 +169,11 @@ for start, end, color in regions:
     plt.axvspan(start, end, color=color, alpha=1)
 
 # Title and axis
-plt.title('BTC Log Price - From Each Halvong', fontsize=16, fontweight='bold')
+plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold')
 plt.xlabel('Days')
 plt.ylabel('Log Price')
 plt.xlim(0, 1500)
+plt.ylim(0.5, 5.5)
 
 # Custom legend
 legend = plt.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
@@ -175,6 +189,17 @@ for halving, group in btc.groupby('halving'):
     x = last_point['days']
     y = last_point['closelog']
     plt.text(x + 20, y, f'Halving {halving}', color=lines[halving], fontsize=8, ha='left', va='center')
+
+# Custom Maximum Dots
+for halving, group in btc.groupby('halving'):
+    max_value = group['closelog'].max()
+    max_row = group[group['closelog'] == max_value].iloc[0]
+    plt.plot(max_row['days'], max_row['closelog']+0.05, marker='*', color='darkgoldenrod', markersize=5)
+
+# Custom Last Dots
+max_vals = btc.groupby('halving').agg({'closelog': 'last', 'days': 'max'}).reset_index()
+for index, row in max_vals.iterrows():
+    plt.plot(row['days'], row['closelog'], 'ro', markersize=2)
 
 # Print it!
 plt.show()
