@@ -41,7 +41,8 @@ btc = pd.concat(dataframes, ignore_index=True)
 # DataSet 0 - Halving
 #================================================================================
 halving = {'halving': [0 , 1, 2, 3, 4],
-               'date': ['2009-01-03', '2012-11-28', '2016-07-09', '2020-05-11', '2024-04-20'] }
+           'date': ['2009-01-03', '2012-11-28', '2016-07-09', '2020-05-11', '2024-04-20'] 
+           }
 
 halving = pd.DataFrame(halving)
 halving['date'] = pd.to_datetime(halving['date'])
@@ -174,7 +175,6 @@ plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold')
 plt.xlabel('Days')
 plt.ylabel('Log Price')
 plt.xlim(0, 1500)
-plt.ylim(0.75, 5.25)
 
 # Custom legend
 legend = plt.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
@@ -196,6 +196,7 @@ for halving, group in btc.groupby('halving'):
     max_value = group['closelog'].max()
     max_row = group[group['closelog'] == max_value].iloc[0]
     plt.plot(max_row['days'], max_row['closelog']+0.05, marker='*', color='darkgoldenrod', markersize=5)
+    plt.text(max_row['days'], max_row['closelog']+0.1, f'{max_row["close"]:,.0f} ({max_row["increase"]:,.0f})%', fontsize=7, ha='center', color='darkgoldenrod')
 
 # Custom Last Dots
 max_vals = btc.groupby('halving').agg({'closelog': 'last', 'days': 'max'}).reset_index()
