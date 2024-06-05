@@ -189,7 +189,7 @@ for halving, group in btc.groupby('halving'):
     last_point = group.iloc[-1]
     x = last_point['days']
     y = last_point['closelog']
-    plt.text(x + 20, y, f'Halving {halving}', color=lines[halving], fontsize=8, ha='left', va='center')
+    plt.text(x + 8, y, f'Halving {halving}', color=lines[halving], fontsize=8, ha='left', va='center')
 
 # Custom Maximum Dots
 for halving, group in btc.groupby('halving'):
