@@ -65,7 +65,7 @@ btc['days'] = btc.groupby('halving').cumcount() + 1
 btc['closelog'] = np.log10(btc['close'])
 btc = btc[btc['halving'] >= 1]
 
-# Graph 1
+# Graph 1 - PLOTNINE
 # ==============================================================================
 # Plot a graph
 # Calculate maximum closelog and days for each halving
@@ -139,7 +139,7 @@ plot = (
 # Print it!
 print(plot)
 
-# Graph 2
+# Graph 2 - SEABORN
 # ==============================================================================
 # Font Style
 plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans'], 'font.size': 10})
