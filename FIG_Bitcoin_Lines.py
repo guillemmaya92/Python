@@ -146,9 +146,10 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans
 
 # Colors Background
 regions = [
-    (0, 500, '#F5FFFA'), # Green
-    (500, 1000, '#FFF2F2'), # Red
-    (1000, 1500, '#FEFDF9')] # Orange
+    (0, 500, '#6B8E23'),  # Green
+    (500, 1000, '#FF4500'),  # Red
+    (1000, 1500, '#FFA500')
+    ]  # Orange
 
 # Colors Palette Lines
 lines = {
@@ -160,20 +161,20 @@ lines = {
 }
 
 # Seaborn to plot a graph
-sns.set(style="darkgrid")
+sns.set(style="whitegrid", rc={"grid.color": "0.95", "axes.grid.axis": "y"})
 plt.figure(figsize=(16, 9))
 sns.lineplot(x='days', y='closelog', hue='halving', data=btc, markers=True, palette=lines, linewidth=1)
 
 # Add region colors in the background
 for start, end, color in regions:
-    plt.axvspan(start, end, color=color, alpha=1)
+    plt.axvspan(start, end, color=color, alpha=0.05)
 
 # Title and axis
 plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold')
 plt.xlabel('Days')
 plt.ylabel('Log Price')
 plt.xlim(0, 1500)
-plt.ylim(0.5, 5.5)
+plt.ylim(0.75, 5.25)
 
 # Custom legend
 legend = plt.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
@@ -200,6 +201,9 @@ for halving, group in btc.groupby('halving'):
 max_vals = btc.groupby('halving').agg({'closelog': 'last', 'days': 'max'}).reset_index()
 for index, row in max_vals.iterrows():
     plt.plot(row['days'], row['closelog'], 'ro', markersize=2)
+
+# Adjust layout
+plt.tight_layout()
 
 # Print it!
 plt.show()
