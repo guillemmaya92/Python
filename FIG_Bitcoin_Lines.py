@@ -172,10 +172,11 @@ for start, end, color in regions:
 
 # Title and axis
 plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold', pad=20)
-plt.xlabel('Days')
-plt.ylabel('Log Price')
+plt.xlabel('Days',  fontsize=10)
+plt.ylabel('Log Price', fontsize=10)
 plt.xlim(0, 1500)
-plt.xticks(range(0, 1501, 250))
+plt.xticks(range(0, 1501, 125), fontsize=9)
+plt.yticks(fontsize=9)
 
 # Custom legend
 legend = plt.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
