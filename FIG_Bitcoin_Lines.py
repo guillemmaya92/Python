@@ -63,6 +63,7 @@ btc['halving'] = btc['halving'].astype(int)
 btc['first_close'] = btc.groupby('halving')['close'].transform('first')
 btc['increase'] = (btc['close'] - btc['first_close']) / btc['first_close'] * 100
 btc['days'] = btc.groupby('halving').cumcount() + 1
+btc['daystotal'] = btc.groupby('symbol').cumcount() + 1
 btc['closelog'] = np.log10(btc['close'])
 btc = btc[btc['halving'] >= 1]
 
