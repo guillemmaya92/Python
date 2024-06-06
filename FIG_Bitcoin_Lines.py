@@ -171,10 +171,11 @@ for start, end, color in regions:
     plt.axvspan(start, end, color=color, alpha=0.05)
 
 # Title and axis
-plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold')
+plt.title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold', pad=20)
 plt.xlabel('Days')
 plt.ylabel('Log Price')
 plt.xlim(0, 1500)
+plt.xticks(range(0, 1501, 250))
 
 # Custom legend
 legend = plt.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
@@ -184,24 +185,42 @@ new_labels = ['1st Halving: 2012-11-28 to 2016-07-09', '2nd Halving: 2016-07-09 
 for text, new_label in zip(legend.texts, new_labels):
     text.set_text(new_label)
 
-# Custom line labels
-for halving, group in btc.groupby('halving'):
-    last_point = group.iloc[-1]
-    x = last_point['days']
-    y = last_point['closelog']
-    plt.text(x + 8, y, f'Halving {halving}', color=lines[halving], fontsize=8, ha='left', va='center')
-
-# Custom Maximum Dots
-for halving, group in btc.groupby('halving'):
+# Maximo First 750 days
+btc1 = btc[(btc['days'] >= 0) & (btc['days'] <= 750)]
+for halving, group in btc1.groupby('halving'):
     max_value = group['closelog'].max()
     max_row = group[group['closelog'] == max_value].iloc[0]
-    plt.plot(max_row['days'], max_row['closelog']+0.05, marker='*', color='darkgoldenrod', markersize=5)
-    plt.text(max_row['days'], max_row['closelog']+0.1, f'{max_row["close"]:,.0f} ({max_row["increase"]:,.0f})%', fontsize=7, ha='center', color='darkgoldenrod')
+    plt.plot(max_row['days'], max_row['closelog'] +0.05, marker='*', color='darkgoldenrod', markersize=5)
+    plt.text(max_row['days'], max_row['closelog'] +0.1, f'{max_row["close"]:,.0f} ({max_row["increase"]:,.0f})%', fontsize=7, ha='center', color='darkgoldenrod')
+
+# Min Between 500 and 1000 days
+btc2 = btc[(btc['days'] >= 500) & (btc['days'] <= 1000)]
+for halving, group in btc2.groupby('halving'):
+    min_value = group['closelog'].min()
+    min_row = group[group['closelog'] == min_value].iloc[0]
+    plt.plot(min_row['days'], min_row['closelog'] - 0.05, marker='v', color='darkred', markersize=5)
+    plt.text(min_row['days'], min_row['closelog'] -0.15, f'{min_row["close"]:,.0f} ({min_row["increase"]:,.0f})%', fontsize=7, ha='center', color='darkred')
+
+# Max After 750 days 
+btc3 = btc[(btc['days'] >= 750) & (btc['days'] <= 1500)]
+for halving, group in btc3.groupby('halving'):
+    max_value = group['closelog'].max()
+    max_row = group[group['closelog'] == max_value].iloc[0]
+    plt.plot(max_row['days'], max_row['closelog'] +0.05, marker='^', color='darkgreen', markersize=5)
+    plt.text(max_row['days'], max_row['closelog'] +0.1, f'{max_row["close"]:,.0f} ({max_row["increase"]:,.0f})%', fontsize=7, ha='center', color='darkgreen')
 
 # Custom Last Dots
 max_vals = btc.groupby('halving').agg({'closelog': 'last', 'days': 'max'}).reset_index()
 for index, row in max_vals.iterrows():
     plt.plot(row['days'], row['closelog'], 'ro', markersize=2)
+
+# Custom Line labels
+for halving, group in btc.groupby('halving'):
+    last_point = group.iloc[-1]
+    x = last_point['days']
+    y = last_point['closelog']
+    max_days = group['days'].max()
+    plt.text(x + 8, y, f'Halving {halving}\n{max_days} days', color=lines[halving], fontsize=8, ha='left', va='center')
 
 # Adjust layout
 plt.tight_layout()
