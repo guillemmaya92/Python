@@ -77,8 +77,8 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans
 regions = [
     (0, 500, '#6B8E23'),  # Green
     (500, 1000, '#FF4500'),  # Red
-    (1000, 1500, '#FFA500')
-    ]  # Orange
+    (1000, 1500, '#FFA500')  # Orange
+    ] 
 
 # Colors Palette Lines
 lines = {
@@ -105,11 +105,12 @@ def update(frame):
         plt.axvspan(start, end, color=color, alpha=0.05)
 
     # Title and axis
-    ax.set_title('BTC Log Price - From Each Halving', fontsize=16, fontweight='bold', pad=20)
-    ax.set_xlabel('Days', fontsize=10)
-    ax.set_ylabel('Log Price', fontsize=10)
+    ax.set_title('Bitcoin Logarithmic Trends: Analysis Since Each Halving', fontsize=16, fontweight='bold', pad=20)
+    ax.set_xlabel('Days', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Log Price', fontsize=10, fontweight='bold')
     ax.set_xlim(0, 1500)
     ax.set_xticks(range(0, 1501, 125))
+    ax.tick_params(axis='both', labelsize=8)
     ax.legend(title="Halving", loc='lower right', fontsize=8, title_fontsize='10')
 
     # Custom legend
@@ -156,16 +157,29 @@ def update(frame):
         y = last_point['closelog']
         max_days = group['days'].max()
         ax.text(x + 8, y, f'Halving {halving}\n{max_days} days', color=lines[halving], fontsize=8, ha='left', va='center')
+    
+    # Add Year Label
+    current_year_month = df_filtered['year_month'].max() 
+    ax.text(1, 1.05, f'{current_year_month}',
+            transform=ax.transAxes,
+            fontsize=22, ha='right', va='top',
+            fontweight='bold', color='#D3D3D3')
+    
+    # Add Data Source
+    ax.text(0, -0.065, 'Data Source: CryptoCompare ', 
+            transform=ax.transAxes, 
+            fontsize=8, 
+            color='gray')
 
     # Adjust layout
     ylim = ax.get_ylim()
-    ax.set_ylim(ylim[0], ylim[1] + 0.1)
+    ax.set_ylim(ylim[0], ylim[1] + 0.25)
 
 # Create animation...
-ani = FuncAnimation(fig, update, frames=np.arange(1, btc['daystotal'].max() + 1), interval=1)
+ani = FuncAnimation(fig, update, frames=np.arange(1, btc['daystotal'].max() + 1), interval=1, repeat=False)
 
 # Save the animation :)
-ani.save('btc_price_animation.gif', writer=PillowWriter(fps=10))
+ani.save('C:/Users/guill/Downloads/BTC_Good.webp', writer='imagemagick', fps=30)
 
 # Print it!
 plt.show()
