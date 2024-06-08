@@ -4,8 +4,7 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation, PillowWriter  
-import plotnine as p9
+from matplotlib.animation import FuncAnimation, PillowWriter, FFMpegWriter
 import requests
 
 # Get API Data
