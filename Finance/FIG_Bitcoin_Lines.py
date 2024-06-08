@@ -4,7 +4,6 @@ import pandas as pd
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
-import plotnine as p9
 import requests
 
 # Get API Data
@@ -75,10 +74,10 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans
 
 # Colors Background
 regions = [
-    (0, 500, '#6B8E23'),  # Green
-    (500, 1000, '#FF4500'),  # Red
-    (1000, 1500, '#FFA500')
-    ]  # Orange
+    (0, 500, '#6B8E23'), # Green
+    (500, 1000, '#FF4500'), # Red
+    (1000, 1500, '#FFA500') # Orange
+    ]  
 
 # Colors Palette Lines
 lines = {
@@ -160,7 +159,10 @@ plt.text(1, 1.05, f'{current_year_month}',
     fontweight='bold', color='#D3D3D3')
 
 # Add Data Source
-plt.text(0, -0.065, 'Data Source: CryptoCompare', transform=plt.gca().transAxes, fontsize=8, color='gray')
+plt.text(0, -0.065, 'Data Source: CryptoCompare', 
+         transform=plt.gca().transAxes, 
+         fontsize=8, 
+         color='gray')
 
 # Adjust layout
 plt.tight_layout()
