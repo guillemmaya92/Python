@@ -51,14 +51,15 @@ halving['date'] = pd.to_datetime(halving['date'])
 # ==============================================================================
 # Definir y ordenar dataset
 btc = btc.drop_duplicates()
+btc = btc[btc['close'] != 0]
 btc['date'] = pd.to_datetime(btc['date'])
+btc['year_month'] = btc['date'].dt.strftime('%Y-%m')
 btc = btc.set_index('date')
 btc = btc.asfreq('D').ffill()
 btc = btc.reset_index()
 btc.sort_values(by=['date'], inplace=True)
 btc = pd.merge(btc, halving, on='date', how='left')
-btc['halving'].fillna(method='ffill', inplace=True)
-btc['halving'].fillna(0, inplace=True)
+btc['halving'] = btc['halving'].ffill().fillna(0).astype(int)
 btc['halving'] = btc['halving'].astype(int)
 btc['first_close'] = btc.groupby('halving')['close'].transform('first')
 btc['increase'] = (btc['close'] - btc['first_close']) / btc['first_close'] * 100
