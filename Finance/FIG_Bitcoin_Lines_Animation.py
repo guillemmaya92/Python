@@ -10,7 +10,7 @@ import requests
 # Get API Data
 # ==============================================================================
 # Create a df with final year dates
-dp = pd.DataFrame({'date': pd.date_range(start='2010-12-31', end='2024-12-31', freq='Y')})
+dp = pd.DataFrame({'date': pd.date_range(start='2010-12-31', end='2024-12-31', freq='YE')})
 dp['to_ts'] = dp['date'].apply(lambda x: int(pd.to_datetime(x).timestamp()))
 
 # Create an empty list
