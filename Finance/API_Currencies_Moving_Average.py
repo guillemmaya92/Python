@@ -134,6 +134,7 @@ exchange_table = Table(
     Column('close', Float),
     Column('low', Float),
     Column('high', Float),
+    Column('volume', Float),
     Column('change', Float),
     Column('changepercent', Float),
     Column('changesign', Float),
