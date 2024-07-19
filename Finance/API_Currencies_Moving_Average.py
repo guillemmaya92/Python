@@ -57,8 +57,16 @@ for i in coin_list:
     df = pd.DataFrame(navigate)
     df['symbol'] = i
 
-    # Set index and fill empty
+    # Format and sort by date 
     df['date'] = pd.to_datetime(df['date'])
+    df = df.sort_values(by='date')
+
+    # Filtering outliers (test)
+    for _ in range(10):
+        df['changepercent'] = abs((df['close'] / df['close'].shift(1)) - 1)
+        df = df.loc[df['changepercent'].abs() < 0.8]
+    
+    # Set index and fill empty
     df = df.set_index('date')
     df = df.asfreq('D').ffill()
     df = df.reset_index()
