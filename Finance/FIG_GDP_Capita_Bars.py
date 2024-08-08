@@ -192,8 +192,8 @@ def update(year):
              fontweight='bold', color='#D3D3D3')
     
     # Add Data Source
-    ax.text(0, -0.065, 'Data Source: IMF World Economic Outlook Database, 2024', 
-            transform=ax.transAxes, 
+    plt.text(0, -0.065, 'Data Source: IMF World Economic Outlook Database, 2024', 
+            transform=plt.gca().transAxes, 
             fontsize=8, 
             color='gray')
 
