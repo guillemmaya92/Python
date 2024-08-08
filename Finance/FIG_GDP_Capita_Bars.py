@@ -99,6 +99,7 @@ df_sample = np.repeat(df_sample.values, df_sample['LP'].astype(int) * 10, axis=0
 df_sample = pd.DataFrame(df_sample, columns=columns)
 df_sample = df_sample.groupby('Year')['PPPPC'].median().reset_index()
 df_sample = df_sample.rename(columns={'PPPPC': 'Median'})
+df_sample['Median_Change'] =  ((df_sample['Median'] /  df_sample['Median'].iloc[0]) -1) * 100
 
 # Merge queries
 df = df.merge(df_sample, how='left', on='Year')
