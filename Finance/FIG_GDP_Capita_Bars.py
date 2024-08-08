@@ -185,18 +185,24 @@ def update(year):
                 fontsize=9, 
                 color='darkblue') 
 
-    # Add a Year label 
+    # Add Year label 
     plt.text(0.95, 1.06, f'{year}',
              transform=plt.gca().transAxes,
              fontsize=22, ha='right', va='top',
              fontweight='bold', color='#D3D3D3')
+    
+    # Add Data Source
+    ax.text(0, -0.065, 'Data Source: IMF World Economic Outlook Database, 2024', 
+            transform=ax.transAxes, 
+            fontsize=8, 
+            color='gray')
 
 # Configurate animation
 years = sorted(df['Year'].unique())
 ani = animation.FuncAnimation(fig, update, frames=years, repeat=False)
 
 # Save the animation :)
-ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars.webp', writer='imagemagick', fps=4)
+ani.save('C:/Users/guillem.maya/Documents/Scripts/FIG_GDP_Capita_Bars.webp', writer='imagemagick', fps=4)
 
 # Print it!
 plt.show()
