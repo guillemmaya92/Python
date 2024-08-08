@@ -71,6 +71,7 @@ df['AVG_Weight'] = df.groupby('Year')['PPPPC'].transform(lambda x: np.average(x,
 # Add a total GDP column and cummulative it
 df['GDP'] = df['PPPPC'] * df['LP']
 df['GDPcum'] = df.groupby('Year')['GDP'].cumsum()
+df['PPPPC_Change'] = ((df['PPPPC'] / df.groupby('ISO3')['PPPPC'].transform('first')) - 1) * 100
 
 # Define function to calculate Gini coefficient
 def gini(x):
