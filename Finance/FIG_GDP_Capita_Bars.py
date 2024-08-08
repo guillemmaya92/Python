@@ -225,10 +225,18 @@ def update(year):
              fontweight='bold', color='#D3D3D3')
     
     # Add Data Source
-    plt.text(0, -0.065, 'Data Source: IMF World Economic Outlook Database, 2024', 
+    plt.text(0, -0.1, 'Data Source: IMF World Economic Outlook Database, 2024', 
             transform=plt.gca().transAxes, 
             fontsize=8, 
             color='gray')
+
+    # Add label "poorest" and "richest"
+    plt.text(0, -0.065, 'Poorest',
+             transform=ax.transAxes,
+             fontsize=12, fontweight='bold', color='darkred', ha='left', va='center')
+    plt.text(0.95, -0.065, 'Richest',
+             transform=ax.transAxes,
+             fontsize=12, fontweight='bold', color='darkblue', va='center')
 
 # Configurate animation
 years = sorted(df['Year'].unique())
