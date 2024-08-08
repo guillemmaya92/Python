@@ -143,6 +143,8 @@ def update(year):
 
     # Add Median Line and Label
     median = subset['Median'].max()
+    median_change = subset.iloc[0]['Median_Change']
+    maxis = subset_usa['PPPPC'].max()
     plt.axhline(
         y=median,
         color='darkred', 
@@ -151,17 +153,26 @@ def update(year):
         label=f'Median: {median:,.0f}')
 
     plt.text(
-        x=subset['Left'].max() * 0.1,
-        y=median * 1.1,
+        x=subset['Left'].max() * 0.02,
+        y=median + (maxis * 0.04),
         s=f'Median: {median:,.0f}',
         color='darkred',
         verticalalignment='bottom',
-        horizontalalignment='right',
+        horizontalalignment='left',
         fontsize=10,
         weight='bold')
+
+    plt.gca().text(
+                subset['Left'].max() * 0.02,
+                median + (maxis * 0.02),
+                f'Cumulative growth 1980-24: {median_change:,.0f}%', 
+                ha='left', va='center', 
+                fontsize=9, 
+                color='darkgreen')
     
     # Add USA Line and Label
     pibc_usa = subset_usa.iloc[0]['PPPPC']
+    pibc_usa_change = subset_usa.iloc[0]['PPPPC_Change']
     plt.axhline(
         y=pibc_usa, 
         color='darkblue', 
@@ -170,22 +181,30 @@ def update(year):
         label=f'GDP USA: {pibc_usa:,.0f}')
     
     plt.text(
-        x=subset['Left'].max() * 0.1,
+        x=subset['Left'].max() * 0.02,
         y=pibc_usa * 0.95,
-        s=f'USA: {pibc_usa:,.0f}',
+        s=f'GDP USA: {pibc_usa:,.0f}',
         color='darkblue',
         verticalalignment='bottom',
-        horizontalalignment='right',
+        horizontalalignment='left',
         fontsize=10,
         weight='bold')
 
     plt.gca().text(
-                subset['Left'].max() * 0.07,
+                subset['Left'].max() * 0.02,
                 pibc_usa * 0.93,
-                f'vs Median: {pibc_usa / median * 100:,.0f}%', 
-                ha='center', va='center', 
+                f'Cumulative growth 1980-24: {pibc_usa_change:,.0f}%', 
+                ha='left', va='center', 
                 fontsize=9, 
-                color='darkblue') 
+                color='darkgreen')
+    
+    plt.gca().text(
+                subset['Left'].max() * 0.02,
+                pibc_usa * 0.9,
+                f'Median-relative: {pibc_usa / median * 100:,.0f}%', 
+                ha='left', va='center', 
+                fontsize=9, 
+                color='darkgrey')
 
     # Add Year label 
     plt.text(0.95, 1.06, f'{year}',
