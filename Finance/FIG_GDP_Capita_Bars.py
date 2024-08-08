@@ -135,16 +135,25 @@ def update(year):
     plt.ylim(0, subset_usa['PPPPC'].max() * 1.05)
     plt.grid(axis='x')
     plt.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
+    plt.title(f'Global Distribution of GDP per Capita by Country', fontsize=16, fontweight='bold', pad=20)
     plt.xlabel('Cumulative Global Population (M)', fontsize=10, fontweight='bold')
     plt.ylabel('Real GDP per capita (US$)', fontsize=10, fontweight='bold')
-    plt.title(f'Distribution of GDP per Capita', fontsize=16, fontweight='bold', pad=20)
+    plt.tick_params(axis='x', labelsize=9)
+    plt.tick_params(axis='y', labelsize=9) 
     plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
     plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
+        
+    # Add Labels to relevant countries
+    for bar, value, country in zip(bars, subset['GDP'], subset['ISO3']):
+        if country in ['CHN', 'IND', 'USA', 'IDN', 'PAK', 'NGA', 'BRA', 'BGD', 'RUS', 'MEX', 'JPN', 'VNM', 'DEU', 'GBR']:
+            plt.gca().text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+                        f'{country}\n{''}', ha='center', va='bottom', fontsize=7, color='grey')
 
     # Add Median Line and Label
     median = subset['Median'].max()
     median_change = subset.iloc[0]['Median_Change']
     maxis = subset_usa['PPPPC'].max()
+    
     plt.axhline(
         y=median,
         color='darkred', 
@@ -165,7 +174,7 @@ def update(year):
     plt.gca().text(
                 subset['Left'].max() * 0.02,
                 median + (maxis * 0.02),
-                f'Cumulative growth 1980-24: {median_change:,.0f}%', 
+                f'Cumulative growth: {median_change:,.0f}%', 
                 ha='left', va='center', 
                 fontsize=9, 
                 color='darkgreen')
@@ -173,11 +182,13 @@ def update(year):
     # Add USA Line and Label
     pibc_usa = subset_usa.iloc[0]['PPPPC']
     pibc_usa_change = subset_usa.iloc[0]['PPPPC_Change']
+    
     plt.axhline(
         y=pibc_usa, 
         color='darkblue', 
         linestyle='--', 
-        linewidth=0.5, 
+        linewidth=0.5,
+
         label=f'GDP USA: {pibc_usa:,.0f}')
     
     plt.text(
@@ -185,15 +196,16 @@ def update(year):
         y=pibc_usa * 0.95,
         s=f'GDP USA: {pibc_usa:,.0f}',
         color='darkblue',
+        fontsize=10,
         verticalalignment='bottom',
         horizontalalignment='left',
-        fontsize=10,
+
         weight='bold')
 
     plt.gca().text(
                 subset['Left'].max() * 0.02,
                 pibc_usa * 0.93,
-                f'Cumulative growth 1980-24: {pibc_usa_change:,.0f}%', 
+                f'Cumulative growth: {pibc_usa_change:,.0f}%', 
                 ha='left', va='center', 
                 fontsize=9, 
                 color='darkgreen')
@@ -220,10 +232,10 @@ def update(year):
 
 # Configurate animation
 years = sorted(df['Year'].unique())
-ani = animation.FuncAnimation(fig, update, frames=years, repeat=False)
+ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
 
 # Save the animation :)
-ani.save('C:/Users/guillem.maya/Documents/Scripts/FIG_GDP_Capita_Bars.webp', writer='imagemagick', fps=4)
+ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars.webp', writer='imagemagick', fps=3)
 
 # Print it!
 plt.show()
