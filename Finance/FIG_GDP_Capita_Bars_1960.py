@@ -1,0 +1,217 @@
+# Libraries
+# =====================================================================
+import requests
+import wbgapi as wb
+import pandas as pd
+import pandas_datareader as pdr
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+import matplotlib.ticker as ticker
+from datetime import datetime
+
+# Data Extraction (Countries)
+# =====================================================================
+# Extract JSON and bring data to a dataframe
+url = 'https://raw.githubusercontent.com/guillemmaya92/world_map/main/Dim_Country.json'
+response = requests.get(url)
+data = response.json()
+df = pd.DataFrame(data)
+df = pd.DataFrame.from_dict(data, orient='index').reset_index()
+df_countries = df.rename(columns={'index': 'ISO3'})
+
+# World Bank Data API Extraction
+# ========================================================
+# To use the built-in plotting method
+indicator = ['NY.GDP.PCAP.CD', 'SP.POP.TOTL']
+countries = df_countries['ISO3'].tolist()
+data_range = range(1960, 2024)
+data = wb.data.DataFrame(indicator, countries, data_range, numericTimeKeys=True, labels=False, columns='series').reset_index()
+df_wb = data.rename(columns={
+    'economy': 'ISO3',
+    'time': 'Year',
+    'NY.GDP.PCAP.CD': 'PPPPC',
+    'SP.POP.TOTL': 'LP'
+})
+
+df_wb['LP'] = df_wb['LP'] / 1000000
+
+# Data Manipulation
+# =====================================================================
+# Filter nulls
+df = df_wb.dropna(subset=['LP', 'PPPPC'], how='any')
+df = df[(df['LP'] >= 0) & (df['PPPPC'] >= 0)]
+
+# Merge queries
+df = df.merge(df_countries, how='left', left_on='ISO3', right_on='ISO3')
+df = df[['ISO3', 'Country', 'Year', 'LP', 'PPPPC', 'Analytical', 'Region']]
+df = df[df['Region'].notna()]
+
+# Filter nulls and order
+df = df.sort_values(by=['Year', 'PPPPC'])
+
+# Calculate 'left accrual widths'
+df['LPcum'] = df.groupby('Year')['LP'].cumsum()
+df['Left'] = df.groupby('Year')['LP'].cumsum() - df['LP']
+
+# Add a total GDP column and cummulative it
+df['GDP'] = df['PPPPC'] * df['LP']
+df['GDPcum'] = df.groupby('Year')['GDP'].cumsum()
+df['PPPPC_Change'] = ((df['PPPPC'] / df.groupby('ISO3')['PPPPC'].transform('first')) - 1) * 100
+
+# Copy a df sample to calculate a median
+df_sample = df.copy()
+columns = df.columns
+df_sample = np.repeat(df_sample.values, df_sample['LP'].astype(int) * 10, axis=0)
+df_sample = pd.DataFrame(df_sample, columns=columns)
+df_sample = df_sample.groupby('Year')['PPPPC'].median().reset_index()
+df_sample = df_sample.rename(columns={'PPPPC': 'Median'})
+df_sample['Median_Change'] =  ((df_sample['Median'] /  df_sample['Median'].iloc[0]) -1) * 100
+
+# Merge queries
+df = df.merge(df_sample, how='left', on='Year')
+
+# Data Visualization
+# =====================================================================
+# Seaborn figure style
+sns.set(style="whitegrid")
+fig, ax = plt.subplots(figsize=(16, 9))
+
+# Create a palette
+palette = sns.color_palette("coolwarm", as_cmap=True).reversed()
+
+# Function to refresh animation
+def update(year):
+    plt.clf()
+    subset = df[df['Year'] == year]
+    subset_usa = subset[subset['ISO3'] == 'USA'].copy()
+    subset_top = subset[subset['ISO3'].isin(['USA', 'DEU', 'JPN', 'GBR'])].copy()
+    
+    # Normalize GDPcum in a range [0, 1]
+    gdp_min = subset['GDPcum'].min()
+    gdp_max = subset_usa['GDPcum'].max()
+    norm = plt.Normalize(gdp_min, gdp_max)
+    colors = palette(norm(subset['GDPcum']))
+    
+    # Create a Matplotlib plot
+    bars = plt.bar(subset['Left'], subset['PPPPC'], width=subset['LP'], 
+            color=colors, alpha=1, align='edge', edgecolor='grey', linewidth=0.1)
+    
+    # Configuration grid and labels
+    plt.xlim(0, subset['LPcum'].max())
+    plt.ylim(0, subset_top['PPPPC'].max() * 1.05)
+    plt.grid(axis='x')
+    plt.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
+    plt.title(f'Global Distribution of GDP per Capita by Country', fontsize=16, fontweight='bold', pad=20)
+    plt.xlabel('Cumulative Global Population (M)', fontsize=10, fontweight='bold')
+    plt.ylabel('Real GDP per capita (US$)', fontsize=10, fontweight='bold')
+    plt.tick_params(axis='x', labelsize=9)
+    plt.tick_params(axis='y', labelsize=9) 
+    plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
+    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
+        
+    # Add Labels to relevant countries
+    for bar, value, country in zip(bars, subset['GDP'], subset['ISO3']):
+        if country in ['CHN', 'IND', 'USA', 'IDN', 'PAK', 'NGA', 'BRA', 'BGD', 'RUS', 'MEX', 'JPN', 'VNM', 'DEU', 'GBR']:
+            plt.gca().text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+                        f'{country}\n{''}', ha='center', va='bottom', fontsize=7, color='grey')
+
+    # Add Median Line and Label
+    median = subset['Median'].max()
+    median_change = subset.iloc[0]['Median_Change']
+    maxis = subset_usa['PPPPC'].max()
+    
+    plt.axhline(
+        y=median,
+        color='darkred', 
+        linestyle='--', 
+        linewidth=0.5,
+        label=f'Median: {median:,.0f}')
+
+    plt.text(
+        x=subset['Left'].max() * 0.02,
+        y=median + (maxis * 0.04),
+        s=f'Median: {median:,.0f}',
+        color='darkred',
+        verticalalignment='bottom',
+        horizontalalignment='left',
+        fontsize=10,
+        weight='bold')
+
+    plt.gca().text(
+                subset['Left'].max() * 0.02,
+                median + (maxis * 0.02),
+                f'Cumulative growth: {median_change:,.0f}%', 
+                ha='left', va='center', 
+                fontsize=9, 
+                color='darkgreen')
+    
+    # Add USA Line and Label
+    pibc_usa = subset_usa.iloc[0]['PPPPC']
+    pibc_usa_change = subset_usa.iloc[0]['PPPPC_Change']
+    
+    plt.axhline(
+        y=pibc_usa, 
+        color='darkblue', 
+        linestyle='--', 
+        linewidth=0.5,
+
+        label=f'GDP USA: {pibc_usa:,.0f}')
+    
+    plt.text(
+        x=subset['Left'].max() * 0.02,
+        y=pibc_usa * 0.95,
+        s=f'GDP USA: {pibc_usa:,.0f}',
+        color='darkblue',
+        fontsize=10,
+        verticalalignment='bottom',
+        horizontalalignment='left',
+
+        weight='bold')
+
+    plt.gca().text(
+                subset['Left'].max() * 0.02,
+                pibc_usa * 0.93,
+                f'Cumulative growth: {pibc_usa_change:,.0f}%', 
+                ha='left', va='center', 
+                fontsize=9, 
+                color='darkgreen')
+    
+    plt.gca().text(
+                subset['Left'].max() * 0.02,
+                pibc_usa * 0.9,
+                f'Median-relative: {pibc_usa / median * 100:,.0f}%', 
+                ha='left', va='center', 
+                fontsize=9, 
+                color='darkgrey')
+
+    # Add Year label 
+    plt.text(0.95, 1.06, f'{year}',
+             transform=plt.gca().transAxes,
+             fontsize=22, ha='right', va='top',
+             fontweight='bold', color='#D3D3D3')
+    
+    # Add Data Source
+    plt.text(0, -0.1, 'Data Source: World Bank national accounts data, and OECD National Accounts data files.', 
+            transform=plt.gca().transAxes, 
+            fontsize=8, 
+            color='gray')
+
+    # Add label "poorest" and "richest"
+    plt.text(0, -0.065, 'Poorest',
+             transform=ax.transAxes,
+             fontsize=12, fontweight='bold', color='darkred', ha='left', va='center')
+    plt.text(0.95, -0.065, 'Richest',
+             transform=ax.transAxes,
+             fontsize=12, fontweight='bold', color='darkblue', va='center')
+
+# Configurate animation
+years = sorted(df['Year'].unique())
+ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
+
+# Save the animation :)
+ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars2.webp', writer='imagemagick', fps=3)
+
+# Print it!
+plt.show()
