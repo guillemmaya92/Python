@@ -30,7 +30,10 @@ df_wb = data.rename(columns={
     'SP.POP.TOTL': 'LP',
     'NY.GDP.PCAP.CD': 'NGDPDPC'
 })
+
+# Adjust LP and filter before 2024
 df_wb['LP'] = df_wb['LP'] / 1000000
+df_wb = df_wb[df_wb['Year'] < 2024]
 
 # Data Extraction - IMF (2024-2030)
 # =====================================================================
@@ -63,6 +66,9 @@ df_imf = pd.DataFrame(records)
 
 # Pivot Parameter to columns and filter nulls
 df_imf = df_imf.pivot(index=['ISO3', 'Year'], columns='Parameter', values='Value').reset_index()
+
+# Filter after 2024
+df_imf = df_imf[df_imf['Year'] >= 2024]
 
 # Data Manipulation
 # =====================================================================
