@@ -233,7 +233,7 @@ plt.text(0, -0.15, 'Notes: The distribution of values, based on GDP per capita, 
     color='gray')
 
 # Save the figure
-plt.savefig('C:/Users/guill/Desktop/Gini_Income_Inequality.png', format='png', dpi=300, bbox_inches='tight')
+plt.savefig('C:/Users/guill/Desktop/FIG_GINI_2024.png', format='png', dpi=300, bbox_inches='tight')
 
 # Show the plot
 plt.show()
