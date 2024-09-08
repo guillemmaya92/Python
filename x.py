@@ -1,10 +1,14 @@
+# Libraries
+# ===================================================
 import os
 import pandas as pd
 import numpy as np
 from scipy.interpolate import PchipInterpolator
 
+# Data Extraction
+# ===================================================
 # Define CSV path
-path = 'C:\\Users\\guillem.maya\\Downloads\\data'
+path = r'C:\Users\guill\Downloads\wid_all_data\data'
 
 # List to save dataframe
 list = []
@@ -15,30 +19,29 @@ for archivo in os.listdir(path):
         df = pd.read_csv(os.path.join(path, archivo), delimiter=';')
         list.append(df)
 
-# Combina todos los DataFrames en uno solo
+# Combine all dataframes and create a copy
 df = pd.concat(list, ignore_index=True)
 dfv = df.copy()
 
-# Filter dataframe
-country = ['US', 'ES']
-variable = ['shwealj992', 'scaincj992', 'sdiincj992']
+# Filter dataframes
+country = ['ES']
+variable = ['sdiincj992', 'shwealj992']
 variablev = ['adiincj992', 'ahwealj992']
 percentile = ['p10p100', 'p20p100', 'p30p100', 'p40p100', 'p50p100', 'p60p100', 'p70p100', 'p80p100', 'p90p100']
 percentilev = ['p0p100']
 year = [1985, 2022]
-df = df[df['variable'].isin(variable) & df['percentile'].isin(percentile) & df['year'].isin(year)]
-dfv = dfv[dfv['variable'].isin(variablev) & dfv['percentile'].isin(percentilev) & dfv['year'].isin(year)]
+df = df[(df['country'].isin(country)) & df['variable'].isin(variable) & df['percentile'].isin(percentile) & df['year'].isin(year)]
+dfv = dfv[(dfv['country'].isin(country)) & dfv['variable'].isin(variablev) & dfv['percentile'].isin(percentilev) & dfv['year'].isin(year)]
 
-# Transformation
+# Transformation 1
 df['value'] = 1 - df['value']
 df['percentile'] = df['percentile'].str[1:3].astype(int) / 100
 df = df[['country', 'variable', 'year', 'percentile', 'value']]
 
-# Transformation 2
-dfv = dfv.pivot_table(index=['country', 'percentile', 'year'], 
-                          columns='variable', values='value').reset_index()
+# Selection columns 2
+dfv = dfv[['country', 'variable', 'year', 'value']]
 
-# Add values 0 and 1
+# Create Dataframe to add values 0 and 1
 dfx = pd.DataFrame(
     [(c, v, y, p, p) for c in country for v in variable for y in year for p in [0, 1]],
     columns=['country', 'variable', 'year', 'percentile', 'value']
@@ -46,19 +49,19 @@ dfx = pd.DataFrame(
 df = pd.concat([df, dfx], ignore_index=True)
 df = df.sort_values(by=['country', 'variable', 'year', 'percentile']).reset_index(drop=True)
 
-# ==============
-# Crear una función para realizar la interpolación
+# Data Manipulation
+# ===================================================
+# Crear an interpolate function
 def aplicar_interpolacion(sub_df):
     x = sub_df['percentile'].values
     y = sub_df['value'].values
     interpolator = PchipInterpolator(x, y)
     
-    # Puedes usar el interpolador para nuevos valores de x o evaluar en los existentes
-    # Aquí solo para ejemplo usamos el rango original de x
-    x_smooth = np.linspace(min(x), max(x), num=100)  # Generar nuevos puntos
+    # Generate new points
+    x_smooth = np.linspace(min(x), max(x), num=100)
     y_smooth = interpolator(x_smooth)
     
-    # Devolvemos un DataFrame con los resultados interpolados
+    # Return dataframe with interpolate results
     return pd.DataFrame({
         'country': sub_df['country'].iloc[0],
         'variable': sub_df['variable'].iloc[0],
@@ -67,8 +70,43 @@ def aplicar_interpolacion(sub_df):
         'value': y_smooth
     })
 
-# Aplicar la función a cada grupo de country, variable, y year
+# Apply function to df partitioned by groups
 df = df.groupby(['country', 'variable', 'year']).apply(aplicar_interpolacion).reset_index(drop=True)
 
-# Ver los resultados
-print(dfv)
+# Modify variables to income and wealth
+df['variable'] = np.where(df['variable'].str.contains('weal', case=False), 'wealth', 'income')
+dfv['variable'] = np.where(dfv['variable'].str.contains('weal', case=False), 'wealth', 'income')
+
+# Merge dataframes
+df = df.merge(dfv, on=['country', 'variable', 'year'], how='left')
+df = df.sort_values(by=['country', 'variable', 'year', 'percentile'])
+
+# Calculate columns
+df['percentile_r'] = df['percentile'] - df.groupby(['country', 'variable', 'year'])['percentile'].shift(1).fillna(0)
+df['value_xr'] = df['value_x'] - df.groupby(['country', 'variable', 'year'])['value_x'].shift(1).fillna(0)
+df['value_yr'] = df['value_xr'] * df['value_y'] * df.groupby(['country', 'variable', 'year']).transform('size')
+df['value_yrm'] = df.groupby(['country', 'variable', 'year'])['value_yr'].transform('median')
+
+# Rename and reorder
+df = df.rename(columns={
+    'country': 'country',
+    'variable': 'variable',
+    'year': 'year',
+    'percentile': 'population_cum_percent',
+    'value_x': 'variable_cum_percent',
+    'value_y': 'value_mean',
+    'percentile_r': 'population_perecent',
+    'value_xr': 'variable_percent',
+    'value_yr': 'value',
+    'value_yrm': 'value_median',
+    })
+
+df = df[
+    ['country', 'variable', 'year', 
+     'population_perecent', 'variable_percent', 
+     'population_cum_percent', 'variable_cum_percent', 
+     'value', 'value_mean', 'value_median']
+]
+
+# Show results
+print(df)
