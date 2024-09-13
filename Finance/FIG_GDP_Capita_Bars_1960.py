@@ -3,13 +3,11 @@
 import requests
 import wbgapi as wb
 import pandas as pd
-import pandas_datareader as pdr
 import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.ticker as ticker
-from datetime import datetime
 
 # Data Extraction (Countries)
 # =====================================================================
@@ -21,7 +19,7 @@ df = pd.DataFrame(data)
 df = pd.DataFrame.from_dict(data, orient='index').reset_index()
 df_countries = df.rename(columns={'index': 'ISO3'})
 
-# World Bank Data API Extraction
+# Data Extraction - WBD (1960-1980)
 # ========================================================
 # To use the built-in plotting method
 indicator = ['NY.GDP.PCAP.CD', 'SP.POP.TOTL']
@@ -31,42 +29,102 @@ data = wb.data.DataFrame(indicator, countries, data_range, numericTimeKeys=True,
 df_wb = data.rename(columns={
     'economy': 'ISO3',
     'time': 'Year',
-    'NY.GDP.PCAP.CD': 'PPPPC',
-    'SP.POP.TOTL': 'LP'
+    'SP.POP.TOTL': 'LP',
+    'NY.GDP.PCAP.CD': 'NGDPDPC'
 })
 
+# Adjust LP and filter before 1980
 df_wb['LP'] = df_wb['LP'] / 1000000
+df_wb = df_wb[df_wb['Year'] < 1980]
+
+# Data Extraction - IMF (1980-2030)
+# =====================================================================
+#Parametro
+parameters = ['LP', 'NGDPDPC']
+
+# Create an empty list
+records = []
+
+# Iterar sobre cada parámetro
+for parameter in parameters:
+    # Request URL
+    url = f"https://www.imf.org/external/datamapper/api/v1/{parameter}"
+    response = requests.get(url)
+    data = response.json()
+    values = data.get('values', {})
+
+    # Iterate over each country and year
+    for country, years in values.get(parameter, {}).items():
+        for year, value in years.items():
+            records.append({
+                'Parameter': parameter,
+                'ISO3': country,
+                'Year': int(year),
+                'Value': float(value)
+            })
+    
+# Create dataframe
+df_imf = pd.DataFrame(records)
+
+# Pivot Parameter to columns and filter nulls
+df_imf = df_imf.pivot(index=['ISO3', 'Year'], columns='Parameter', values='Value').reset_index()
+
+# Filter after 2024
+df_imf = df_imf[df_imf['Year'] >= 1980]
 
 # Data Manipulation
 # =====================================================================
-# Filter nulls
-df = df_wb.dropna(subset=['LP', 'PPPPC'], how='any')
-df = df[(df['LP'] >= 0) & (df['PPPPC'] >= 0)]
+# Concat and filter dataframes
+df = pd.concat([df_wb, df_imf], ignore_index=True)
+df = df.dropna(subset=['NGDPDPC', 'LP'], how='any')
 
 # Merge queries
 df = df.merge(df_countries, how='left', left_on='ISO3', right_on='ISO3')
-df = df[['ISO3', 'Country', 'Year', 'LP', 'PPPPC', 'Analytical', 'Region']]
+df = df[['ISO3', 'Country', 'Year', 'LP', 'NGDPDPC', 'Analytical', 'Region']]
 df = df[df['Region'].notna()]
 
 # Filter nulls and order
-df = df.sort_values(by=['Year', 'PPPPC'])
+df = df.sort_values(by=['Year', 'NGDPDPC'])
 
 # Calculate 'left accrual widths'
 df['LPcum'] = df.groupby('Year')['LP'].cumsum()
 df['Left'] = df.groupby('Year')['LP'].cumsum() - df['LP']
 
+# Calculate GDP Average weighted by Population and partitioned by Year
+df['AVG_Weight'] = df.groupby('Year')['NGDPDPC'].transform(lambda x: np.average(x, weights=df.loc[x.index, 'LP']))
+
 # Add a total GDP column and cummulative it
-df['GDP'] = df['PPPPC'] * df['LP']
+df['GDP'] = df['NGDPDPC'] * df['LP']
 df['GDPcum'] = df.groupby('Year')['GDP'].cumsum()
-df['PPPPC_Change'] = ((df['PPPPC'] / df.groupby('ISO3')['PPPPC'].transform('first')) - 1) * 100
+df['NGDPDPC_Change'] = ((df['NGDPDPC'] / df.groupby('ISO3')['NGDPDPC'].transform('first')) - 1) * 100
+
+# Define function to calculate Gini coefficient
+def gini(x):
+    x = np.array(x)
+    x = np.sort(x)
+    n = len(x)
+    gini_index = (2 * np.sum(np.arange(1, n + 1) * x) - (n + 1) * np.sum(x)) / (n * np.sum(x))
+    return gini_index
+
+df['Gini'] = df.groupby('Year')['NGDPDPC'].transform(lambda x: gini(x))
+
+# Define function to calculate a variation coefFicient
+def variation(x):
+    x = np.array(x)
+    mean = np.mean(x)
+    standard_dev = np.std(x, ddof=0)
+    var = (standard_dev / mean) * 100
+    return var
+
+df['Variation'] = df.groupby('Year')['NGDPDPC'].transform(lambda x: variation(x))
 
 # Copy a df sample to calculate a median
 df_sample = df.copy()
 columns = df.columns
 df_sample = np.repeat(df_sample.values, df_sample['LP'].astype(int) * 10, axis=0)
 df_sample = pd.DataFrame(df_sample, columns=columns)
-df_sample = df_sample.groupby('Year')['PPPPC'].median().reset_index()
-df_sample = df_sample.rename(columns={'PPPPC': 'Median'})
+df_sample = df_sample.groupby('Year')['NGDPDPC'].median().reset_index()
+df_sample = df_sample.rename(columns={'NGDPDPC': 'Median'})
 df_sample['Median_Change'] =  ((df_sample['Median'] /  df_sample['Median'].iloc[0]) -1) * 100
 
 # Merge queries
@@ -95,17 +153,17 @@ def update(year):
     colors = palette(norm(subset['GDPcum']))
     
     # Create a Matplotlib plot
-    bars = plt.bar(subset['Left'], subset['PPPPC'], width=subset['LP'], 
+    bars = plt.bar(subset['Left'], subset['NGDPDPC'], width=subset['LP'], 
             color=colors, alpha=1, align='edge', edgecolor='grey', linewidth=0.1)
     
     # Configuration grid and labels
     plt.xlim(0, subset['LPcum'].max())
-    plt.ylim(0, subset_top['PPPPC'].max() * 1.05)
+    plt.ylim(0, subset_top['NGDPDPC'].max() * 1.05)
     plt.grid(axis='x')
     plt.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
     plt.title(f'Global Distribution of GDP per Capita by Country', fontsize=16, fontweight='bold', pad=20)
     plt.xlabel('Cumulative Global Population (M)', fontsize=10, fontweight='bold')
-    plt.ylabel('Real GDP per capita (US$)', fontsize=10, fontweight='bold')
+    plt.ylabel('GDP per capita (US$)', fontsize=10, fontweight='bold')
     plt.tick_params(axis='x', labelsize=9)
     plt.tick_params(axis='y', labelsize=9) 
     plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
@@ -120,19 +178,18 @@ def update(year):
     # Add Median Line and Label
     median = subset['Median'].max()
     median_change = subset.iloc[0]['Median_Change']
-    maxis = subset_usa['PPPPC'].max()
+    maxis = subset_usa['NGDPDPC'].max()
     
     plt.axhline(
         y=median,
         color='darkred', 
         linestyle='--', 
-        linewidth=0.5,
-        label=f'Median: {median:,.0f}')
+        linewidth=0.5)
 
     plt.text(
         x=subset['Left'].max() * 0.02,
         y=median + (maxis * 0.04),
-        s=f'Median: {median:,.0f}',
+        s=f'GDP Capita Median: {median:,.0f}',
         color='darkred',
         verticalalignment='bottom',
         horizontalalignment='left',
@@ -148,21 +205,19 @@ def update(year):
                 color='darkgreen')
     
     # Add USA Line and Label
-    pibc_usa = subset_usa.iloc[0]['PPPPC']
-    pibc_usa_change = subset_usa.iloc[0]['PPPPC_Change']
+    pibc_usa = subset_usa.iloc[0]['NGDPDPC']
+    pibc_usa_change = subset_usa.iloc[0]['NGDPDPC_Change']
     
     plt.axhline(
         y=pibc_usa, 
         color='darkblue', 
         linestyle='--', 
-        linewidth=0.5,
-
-        label=f'GDP USA: {pibc_usa:,.0f}')
+        linewidth=0.5)
     
     plt.text(
         x=subset['Left'].max() * 0.02,
         y=pibc_usa * 0.95,
-        s=f'GDP USA: {pibc_usa:,.0f}',
+        s=f'GDP Capita USA: {pibc_usa:,.0f}',
         color='darkblue',
         fontsize=10,
         verticalalignment='bottom',
@@ -193,7 +248,7 @@ def update(year):
              fontweight='bold', color='#D3D3D3')
     
     # Add Data Source
-    plt.text(0, -0.1, 'Data Source: World Bank national accounts data, and OECD National Accounts data files.', 
+    plt.text(0, -0.1, 'Data Source: IMF World Economic Outlook Database, 2024 | World Bank national accounts data, and OECD National Accounts data files.', 
             transform=plt.gca().transAxes, 
             fontsize=8, 
             color='gray')
@@ -211,7 +266,7 @@ years = sorted(df['Year'].unique())
 ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
 
 # Save the animation :)
-ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars2.webp', writer='imagemagick', fps=3)
+ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars2.mp4', writer='ffmpeg', fps=2.5)
 
 # Print it!
 plt.show()
