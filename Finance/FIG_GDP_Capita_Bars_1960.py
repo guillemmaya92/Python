@@ -161,7 +161,7 @@ def update(year):
     plt.ylim(0, subset_top['NGDPDPC'].max() * 1.05)
     plt.grid(axis='x')
     plt.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
-    plt.title(f'Global Distribution of GDP per Capita by Country', fontsize=16, fontweight='bold', pad=20)
+    plt.title(f'Global Distribution of GDP by Country', fontsize=16, fontweight='bold', pad=20)
     plt.xlabel('Cumulative Global Population (M)', fontsize=10, fontweight='bold')
     plt.ylabel('GDP per capita (US$)', fontsize=10, fontweight='bold')
     plt.tick_params(axis='x', labelsize=9)
@@ -266,7 +266,7 @@ years = sorted(df['Year'].unique())
 ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
 
 # Save the animation :)
-ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars2.mp4', writer='ffmpeg', fps=2.5)
+ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Bars_1960.mp4', writer='ffmpeg', fps=2.5)
 
 # Print it!
 plt.show()
