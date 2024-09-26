@@ -112,7 +112,7 @@ plt.xlabel('GAP Between PPP and Exchange Rate', fontsize=10, fontweight='bold')
 plt.ylabel('GDP Per Capita ($US)', fontsize=10, fontweight='bold')
 plt.xlim(0, 1.2)
 plt.ylim(0, usa)
-plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}'))
+plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x / 1000):,}k'))
 plt.grid(True, linestyle='-', color='grey', linewidth=0.08)
 plt.gca().set_yticks(np.linspace(0, usa, 7))
 
