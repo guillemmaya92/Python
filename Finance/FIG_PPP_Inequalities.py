@@ -23,7 +23,7 @@ df_countries = df.rename(columns={'index': 'ISO3'})
 # Data Extraction - IMF (1980-2030)
 # =====================================================================
 #Parametro
-parameters = ['PPPPC', 'NGDPDPC', 'LP']
+parameters = ['NGDPD', 'PPPGDP', 'LP']
 
 # Create an empty list
 records = []
@@ -58,18 +58,24 @@ df_imf = df_imf[df_imf['Year'] >= 1999]
 # Data Manipulation
 # =====================================================================
 # Concat and filter dataframes
-df = df_imf.dropna(subset=['NGDPDPC', 'PPPPC', 'LP'], how='any')
+df = df_imf.dropna(subset=['NGDPD', 'PPPGDP', 'LP'], how='any')
 
 # Merge queries
 df = df.merge(df_countries, how='left', left_on='ISO3', right_on='ISO3')
-df = df[['Region', 'ISO3', 'Country', 'Cod_Currency', 'Year', 'NGDPDPC', 'PPPPC', 'LP']]
+df = df[['Region', 'ISO3', 'Country', 'Cod_Currency', 'Year', 'NGDPD', 'PPPGDP', 'LP']]
 df = df[df['Cod_Currency'].notna()]
 
 # Calculate PPP
-df = df.groupby(['Region', 'ISO3', 'Year'])[['NGDPDPC', 'PPPPC', 'LP']].sum()
+df = df.groupby(['Region', 'ISO3', 'Year'])[['NGDPD', 'PPPGDP', 'LP']].sum()
 df = df.reset_index()
-df['PPP'] = df['NGDPDPC'] / df['PPPPC']
+df['PPP'] = df['NGDPD'] / df['PPPGDP']
+df['NGDPDPC'] = df['NGDPD'] / df['LP']
+df['PPPPC'] = df['PPPGDP'] / df['LP']
 df = df[df['Year'] == 2024]
+
+usa = df.loc[df['ISO3'] == 'USA', 'NGDPDPC'].max() * 1.1
+df = df[df['NGDPDPC'] < usa]
+df = df[df['PPP'] < 1.2]
 
 print(df)
 
@@ -103,7 +109,7 @@ usa = df.loc[df['ISO3'] == 'USA', 'NGDPDPC'].max() * 1.1
 
 # Create scatter plot
 plt.figure(figsize=(10,10))
-plt.scatter(df['PPP'], df['NGDPDPC'], s=df['LP']/2, edgecolor=custom_line, facecolor=custom_area, linewidth=0.5)
+plt.scatter(df['PPP'], df['NGDPDPC'], s=df['NGDPD']/8, edgecolor=custom_line, facecolor=custom_area, linewidth=0.5)
 
 # Add title labels
 plt.text(0, 1.05, 'Income Inequality', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
@@ -112,12 +118,12 @@ plt.xlabel('GAP Between PPP and Exchange Rate', fontsize=10, fontweight='bold')
 plt.ylabel('GDP Per Capita ($US)', fontsize=10, fontweight='bold')
 plt.xlim(0, 1.2)
 plt.ylim(0, usa)
-plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x / 1000):,}k'))
 plt.grid(True, linestyle='-', color='grey', linewidth=0.08)
+plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}k'))
 plt.gca().set_yticks(np.linspace(0, usa, 7))
 
 # Add line trend
-z = np.polyfit(df['PPP'], df['NGDPDPC'], 1)
+z = np.polyfit(df['PPP'], df['NGDPDPC'], 1, w=df['NGDPD'])
 p = np.poly1d(z)
 plt.plot(df['PPP'], p(df['PPP']), color='darkred', linewidth=0.5)
 
