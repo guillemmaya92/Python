@@ -20,28 +20,10 @@ df = pd.DataFrame(data)
 df = pd.DataFrame.from_dict(data, orient='index').reset_index()
 df_countries = df.rename(columns={'index': 'ISO3'})
 
-# Data Extraction - WBD (1960-1980)
-# ========================================================
-# To use the built-in plotting method
-indicator = ['NY.GDP.PCAP.CD', 'SP.POP.TOTL']
-countries = df_countries['ISO3'].tolist()
-data_range = range(1960, 2024)
-data = wb.data.DataFrame(indicator, countries, data_range, numericTimeKeys=True, labels=False, columns='series').reset_index()
-df_wb = data.rename(columns={
-    'economy': 'ISO3',
-    'time': 'Year',
-    'SP.POP.TOTL': 'LP',
-    'NY.GDP.PCAP.PP.CD': 'PPPPC'
-})
-
-# Adjust LP and filter before 1980
-df_wb['LP'] = df_wb['LP'] / 1000000
-df_wb = df_wb[df_wb['Year'] < 1980]
-
-# Data Extraction (IMF)
+# Data Extraction - IMF (1980-2030)
 # =====================================================================
 #Parametro
-parameters = ['LP', 'PPPPC']
+parameters = ['NGDPD', 'PPPGDP', 'LP']
 
 # Create an empty list
 records = []
@@ -71,179 +53,122 @@ df_imf = pd.DataFrame(records)
 df_imf = df_imf.pivot(index=['ISO3', 'Year'], columns='Parameter', values='Value').reset_index()
 
 # Filter after 2024
-df_imf = df_imf[df_imf['Year'] >= 1980]
+df_imf = df_imf[df_imf['Year'] == 2024]
 
 # Data Manipulation
 # =====================================================================
 # Concat and filter dataframes
-df = pd.concat([df_wb, df_imf], ignore_index=True)
-df = df.dropna(subset=['PPPPC', 'LP'], how='any')
+df = df_imf.dropna(subset=['NGDPD', 'PPPGDP', 'LP'], how='any')
 
 # Merge queries
 df = df.merge(df_countries, how='left', left_on='ISO3', right_on='ISO3')
-df = df[['ISO3', 'Country', 'Year', 'LP', 'PPPPC', 'Analytical', 'Region']]
-df = df[df['Region'].notna()]
+df = df[['Region', 'ISO3', 'Country', 'Cod_Currency', 'Year', 'NGDPD', 'PPPGDP', 'LP']]
+df = df[df['Cod_Currency'].notna()]
 
-# Filter nulls and order
-df = df.sort_values(by=['Year', 'PPPPC'])
+# Calculate PPP
+df = df.groupby(['Region', 'ISO3', 'Year'])[['NGDPD', 'PPPGDP', 'LP']].sum()
+df = df.reset_index()
+df['PPP'] = df['NGDPD'] / df['PPPGDP']
+df['NGDPDPC'] = df['NGDPD'] / df['LP']
+df['PPPPC'] = df['PPPGDP'] / df['LP']
 
-# Copy a df sample to calculate a median
-columns = df.columns
-df = np.repeat(df.values, df['LP'].astype(int) * 10, axis=0)
-df = pd.DataFrame(df, columns=columns)
+# Calculate Average Weight and Percent
+df['AVG_Weight'] = df.groupby('Year')['NGDPDPC'].transform(lambda x: np.average(x, weights=df.loc[x.index, 'LP']))
+df['Percent'] = df['NGDPD'] / df.groupby('Year')['NGDPD'].transform('sum')
 
-# Function to create a new distribution
-def distribution(df):
-    average = df['PPPPC'].mean()
-    inequality = np.geomspace(1, 10, len(df))
-    df['PPPPC_Dis'] = inequality * (average / np.mean(inequality))
-    
-    return df
-
-df = df.groupby(['Country', 'Year']).apply(distribution).reset_index(drop=True)
-
-# Logarithmic distribution
-df['PPPPC_Dis_Log'] = np.log(df['PPPPC_Dis'])
-
-# Logarithmic distribution
-df['Region'] = np.where(df['ISO3'] == 'CHN', 'China', df['Region'])
-df['Region'] = np.where(df['ISO3'] == 'USA', 'USA', df['Region'])
+# Filtering
+df = df[df['NGDPDPC'] < df['AVG_Weight'] * 60 ]
+df = df[df['PPP'] < 1.2]
 
 print(df)
 
 # Data Visualization
 # =====================================================================
-# Seaborn figure style
-sns.set(style="whitegrid")
+# Font Style
+plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans'], 'font.size': 10})
 
-# Create a palette
-fig, ax = plt.subplots(figsize=(16, 9))
+#Palette of colors
+custom_area = {
+    'Asia': '#fff3d0',
+    'Europe': '#ccdccd',
+    'Oceania': '#90a8b7',
+    'Americas': '#fdcccc',
+    'Africa': '#ffe3ce'
+}
+custom_area_m = df['Region'].map(custom_area)
 
-def update(year):
-    ax.clear()
-    df_filtered = df[df['Year'] == year]
-    
-    # Calculate mean value
-    min_value = df_filtered['PPPPC_Dis_Log'].min()
-    max_value = df_filtered['PPPPC_Dis_Log'].max()
-    mean_value = df_filtered['PPPPC_Dis_Log'].median()
-    mean_value_r = df_filtered['PPPPC_Dis'].median()
-    per10 = df_filtered['PPPPC_Dis_Log'].quantile(0.001)
-    per90 = df_filtered['PPPPC_Dis_Log'].quantile(0.999)
-    population = len(df_filtered)
-    
-    # Custom palette area
-    custom_area = {
-        'China': '#e3d6b1',
-        'Asia': '#fff3d0',
-        'Europe': '#ccdccd',
-        'Oceania': '#90a8b7',
-        'USA': '#f09c9c',
-        'Americas': '#fdcccc',
-        'Africa': '#ffe3ce'
-    }
- 
-    # Custom palette line
-    custom_line = {
-        'China': '#cc9d0e',
-        'Asia': '#FFC107',
-        'Europe': '#004d00',
-        'Oceania': '#003366',
-        'USA': '#a60707',
-        'Americas': '#FF0000',
-        'Africa': '#FF6F00'
-    }
-    
-    # Region Order
-    order_region = ['China', 'Asia', 'Africa', 'USA', 'Americas', 'Europe', 'Oceania'] 
+# Custom palette line
+custom_line = {
+    'Asia': '#FFC107',
+    'Europe': '#004d00',
+    'Oceania': '#003366',
+    'Americas': '#FF0000',
+    'Africa': '#FF6F00'
+}
+custom_line_m = df['Region'].map(custom_line)
 
-    # Create kdeplot area and lines
-    sns.kdeplot(data=df_filtered, x="PPPPC_Dis_Log", hue="Region", bw_adjust=2, hue_order=order_region, multiple="stack", alpha=1, palette=custom_area, fill=True, linewidth=1, linestyle='-', ax=ax)
-    sns.kdeplot(data=df_filtered, x="PPPPC_Dis_Log", hue="Region", bw_adjust=2, hue_order=order_region, multiple="stack", alpha=1, palette=custom_line, fill=False, linewidth=1, linestyle='-', ax=ax)
+# Filtering
+usa = df.loc[df['ISO3'] == 'USA', 'NGDPDPC'].max() * 1.1
+median = df.loc[df['ISO3'] == 'USA', 'AVG_Weight'].max()
 
-    # Configuration grid and labels
-    fig.suptitle('Global GDP per Capita distribution', fontsize=16, fontweight='bold', y=0.95)
-    ax.set_title('Evolution by region from 1980 to 2030', fontsize=12, fontweight='normal', pad=18)
-    ax.set_xlabel('GDP per capita (PPP), log axis', fontsize=10, fontweight='bold')
-    ax.set_ylabel('Frequency of total population (M)', fontsize=10, fontweight='bold')
-    ax.tick_params(axis='x', labelsize=9)
-    ax.tick_params(axis='y', labelsize=9)
-    ax.grid(axis='x')
-    ax.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
-    ax.set_ylim(0, 0.4)
-    ax.set_xlim(per10, per90)
-    ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x * 100000):,}'))
-    
-    # Inverse logarhitmic xticklabels
-    xticks = np.linspace(df_filtered["PPPPC_Dis_Log"].min(), df_filtered["PPPPC_Dis_Log"].max(), num=5)
-    ax.set_xticks(xticks)
-    ax.set_xticklabels([f'{int(np.exp(tick)):,}' for tick in xticks])
-    
-    # White color to xticklabels
-    for label in ax.get_xticklabels():
-        label.set_color('black')
-        
-    # Median line
-    ax.axvline(mean_value, color='darkred', linestyle='--', linewidth=0.5)
-    ax.text(
-        x=mean_value + (max_value * 0.01),
-        y=ax.get_ylim()[1] * 0.98,
-        s=f'Median: ${mean_value_r:,.0f} ppp',
-        color='darkred',
-        verticalalignment='top',
-        horizontalalignment='left',
-        fontsize=10,
-        weight='bold')
-    
-    # Population label
-    ax.text(
-        0.02,
-        0.98,
-        s=f'Population: {population / 10:,.0f} (M)',
-        transform=ax.transAxes,
-        color='dimgrey',
-        verticalalignment='top',
-        horizontalalignment='left',
-        fontsize=10,
-        weight='bold')
-    
-    # Add a custom legend
-    legend_elements = [Line2D([0], [0], color=color, lw=4, label=region, alpha=0.4) for region, color in custom_line.items()]
-    legend = ax.legend(handles=legend_elements, title='Region', title_fontsize='10', fontsize='9', loc='upper right')
-    plt.setp(legend.get_title(), fontweight='bold')
+# Create scatter plot
+plt.figure(figsize=(10,10))
+plt.scatter(df['PPP'], df['NGDPDPC'], s=df['NGDPD']/8, edgecolor=custom_line_m, facecolor=custom_area_m, linewidth=0.5)
 
-    # Add Year label
-    ax.text(0.95, 1.06, f'{year}',
-        transform=ax.transAxes,
-        fontsize=22, ha='right', va='top',
-        fontweight='bold', color='#D3D3D3')
-    
-    # Add label "poorest" and "richest"
-    plt.text(0, -0.065, 'Poorest',
-             transform=ax.transAxes,
-             fontsize=10, fontweight='bold', color='darkred', ha='left', va='center')
-    plt.text(0.95, -0.065, 'Richest',
-             transform=ax.transAxes,
-             fontsize=10, fontweight='bold', color='darkblue', va='center')
+# Add title labels
+plt.text(0, 1.05, 'Relationship of GDP Per Capita and Price Levels', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
+plt.text(0, 1.02, 'Comparing Inequalities Between PPP and Market Exchange Rates by Country', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
+plt.xlabel('GAP Between PPP and Exchange Rate', fontsize=10, fontweight='bold')
+plt.ylabel('GDP Per Capita ($US)', fontsize=10, fontweight='bold')
+plt.xlim(0, 1.2)
+plt.ylim(0, usa)
+plt.grid(True, linestyle='-', color='grey', linewidth=0.08)
+plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}k'))
+plt.gca().set_yticks(np.linspace(0, usa, 7))
 
-    # Add Data Source
-    plt.text(0, -0.1, 'Data Source: IMF World Economic Outlook Database, 2024', 
-            transform=plt.gca().transAxes, 
-            fontsize=8, 
-            color='gray')
+# Add line trend
+z = np.polyfit(df['PPP'], df['NGDPDPC'], 2, w=df['NGDPD'])
+p = np.poly1d(z)
+x_range = np.linspace(df['PPP'].min(), df['PPP'].max(), 100)  # 100 puntos entre el mínimo y máximo
+y_range = p(x_range)
+plt.plot(x_range, y_range, color='darkred', linewidth=0.5)
 
-    # Add Notes
-    plt.text(0, -0.12, 'Notes: Notes: The distribution of values, based on GDP per capita, has been calculated using a logarithmic scale ranging from 1 to 10 and adjusted proportionally to the population size of each country.', 
-        transform=plt.gca().transAxes,
-        fontsize=8, 
-        color='gray')
+# Add line median
+plt.axhline(y=median, color='darkred', linewidth=0.25, linestyle='--')
 
-# Configurate animation
-years = sorted(df['Year'].unique())
-ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
+# Add text median
+plt.text(0.2, median*1.15, f'Median: {median:,.2f}k',
+    fontsize=9, ha='right', va='top',
+    fontweight='bold', color='darkred')
 
-# Save the animation :)
-ani.save('C:/Users/guill/Downloads/FIG_GDP_Capita_Distribution_PPP_KDEPLOT.mp4', writer='ffmpeg', fps=3)
+# Element legend
+legend_elements = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=region, alpha=0.35)
+    for region, color in custom_line.items()
+]
 
-# Print it!
+# Create legend
+legend = plt.legend(handles=legend_elements, title='Region', title_fontsize='10', fontsize='9', loc='upper left')
+plt.setp(legend.get_title(), fontweight='bold')
+
+# Fill red and green area
+plt.fill_betweenx(y=[0, usa], x1=0, x2=1, color='red', alpha=0.04)
+plt.fill_betweenx(y=[0, usa], x1=1, x2=1.25, color='green', alpha=0.04)
+
+# Add Year label
+plt.text(0.95, 1.06, df['Year'].max(),
+    transform=plt.gca().transAxes,
+    fontsize=22, ha='right', va='top',
+    fontweight='bold', color='#D3D3D3')
+
+# Add Data Source
+plt.text(0, -0.1, 'Data Source: IMF World Economic Outlook Database, 2024', 
+    transform=plt.gca().transAxes, 
+    fontsize=8, 
+    color='gray')
+
+# Save the figure
+plt.savefig('C:/Users/guillem.maya/Desktop/FIG_PPP_Inequalities.png', format='png', dpi=300, bbox_inches='tight')
+
+# Show the plot
 plt.show()
