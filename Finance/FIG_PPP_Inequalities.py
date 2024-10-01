@@ -53,7 +53,7 @@ df_imf = pd.DataFrame(records)
 df_imf = df_imf.pivot(index=['ISO3', 'Year'], columns='Parameter', values='Value').reset_index()
 
 # Filter after 2024
-df_imf = df_imf[df_imf['Year'] >= 1999]
+df_imf = df_imf[df_imf['Year'] == 2024]
 
 # Data Manipulation
 # =====================================================================
@@ -71,10 +71,13 @@ df = df.reset_index()
 df['PPP'] = df['NGDPD'] / df['PPPGDP']
 df['NGDPDPC'] = df['NGDPD'] / df['LP']
 df['PPPPC'] = df['PPPGDP'] / df['LP']
-df = df[df['Year'] == 2024]
 
-usa = df.loc[df['ISO3'] == 'USA', 'NGDPDPC'].max() * 1.1
-df = df[df['NGDPDPC'] < usa]
+# Calculate Average Weight and Percent
+df['AVG_Weight'] = df.groupby('Year')['NGDPDPC'].transform(lambda x: np.average(x, weights=df.loc[x.index, 'LP']))
+df['Percent'] = df['NGDPD'] / df.groupby('Year')['NGDPD'].transform('sum')
+
+# Filtering
+df = df[df['NGDPDPC'] < df['AVG_Weight'] * 60 ]
 df = df[df['PPP'] < 1.2]
 
 print(df)
@@ -92,7 +95,7 @@ custom_area = {
     'Americas': '#fdcccc',
     'Africa': '#ffe3ce'
 }
-custom_area = df['Region'].map(custom_area)
+custom_area_m = df['Region'].map(custom_area)
 
 # Custom palette line
 custom_line = {
@@ -102,18 +105,19 @@ custom_line = {
     'Americas': '#FF0000',
     'Africa': '#FF6F00'
 }
-custom_line = df['Region'].map(custom_line)
+custom_line_m = df['Region'].map(custom_line)
 
 # Filtering
 usa = df.loc[df['ISO3'] == 'USA', 'NGDPDPC'].max() * 1.1
+median = df.loc[df['ISO3'] == 'USA', 'AVG_Weight'].max()
 
 # Create scatter plot
 plt.figure(figsize=(10,10))
-plt.scatter(df['PPP'], df['NGDPDPC'], s=df['NGDPD']/8, edgecolor=custom_line, facecolor=custom_area, linewidth=0.5)
+plt.scatter(df['PPP'], df['NGDPDPC'], s=df['NGDPD']/8, edgecolor=custom_line_m, facecolor=custom_area_m, linewidth=0.5)
 
 # Add title labels
-plt.text(0, 1.05, 'Income Inequality', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
-plt.text(0, 1.02, 'Differences between PPP and market exchanges rates', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
+plt.text(0, 1.05, 'Relationship of GDP Per Capita and Price Levels', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
+plt.text(0, 1.02, 'Comparing Inequalities Between PPP and Market Exchange Rates by Country', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
 plt.xlabel('GAP Between PPP and Exchange Rate', fontsize=10, fontweight='bold')
 plt.ylabel('GDP Per Capita ($US)', fontsize=10, fontweight='bold')
 plt.xlim(0, 1.2)
@@ -123,9 +127,29 @@ plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):
 plt.gca().set_yticks(np.linspace(0, usa, 7))
 
 # Add line trend
-z = np.polyfit(df['PPP'], df['NGDPDPC'], 1, w=df['NGDPD'])
+z = np.polyfit(df['PPP'], df['NGDPDPC'], 2, w=df['NGDPD'])
 p = np.poly1d(z)
-plt.plot(df['PPP'], p(df['PPP']), color='darkred', linewidth=0.5)
+x_range = np.linspace(df['PPP'].min(), df['PPP'].max(), 100)  # 100 puntos entre el mínimo y máximo
+y_range = p(x_range)
+plt.plot(x_range, y_range, color='darkred', linewidth=0.5)
+
+# Add line median
+plt.axhline(y=median, color='darkred', linewidth=0.25, linestyle='--')
+
+# Add text median
+plt.text(0.2, median*1.15, f'Median: {median:,.2f}k',
+    fontsize=9, ha='right', va='top',
+    fontweight='bold', color='darkred')
+
+# Element legend
+legend_elements = [
+    Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=region, alpha=0.35)
+    for region, color in custom_line.items()
+]
+
+# Create legend
+legend = plt.legend(handles=legend_elements, title='Region', title_fontsize='10', fontsize='9', loc='upper left')
+plt.setp(legend.get_title(), fontweight='bold')
 
 # Fill red and green area
 plt.fill_betweenx(y=[0, usa], x1=0, x2=1, color='red', alpha=0.04)
