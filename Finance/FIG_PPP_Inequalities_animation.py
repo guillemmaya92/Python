@@ -8,6 +8,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import matplotlib.ticker as ticker
+from matplotlib.lines import Line2D
 from datetime import datetime
 
 # Data Extraction (Countries)
@@ -28,7 +29,7 @@ parameters = ['NGDPD', 'PPPGDP', 'LP']
 # Create an empty list
 records = []
 
-# Iterar sobre cada parámetro
+# Iterate over each parameter
 for parameter in parameters:
     # Request URL
     url = f"https://www.imf.org/external/datamapper/api/v1/{parameter}"
@@ -52,7 +53,7 @@ df_imf = pd.DataFrame(records)
 # Pivot Parameter to columns and filter nulls
 df_imf = df_imf.pivot(index=['ISO3', 'Year'], columns='Parameter', values='Value').reset_index()
 
-# Filter after 2024
+# Filter after 1980
 df_imf = df_imf[df_imf['Year'] >= 1980]
 
 # Data Manipulation
@@ -94,7 +95,7 @@ df['Percent'] = df['NGDPD'] / df.groupby('Date')['NGDPD'].transform('sum')
 
 # Filtering
 df = df[df['NGDPDPC'] < df['AVG_Weight'] * 60 ]
-df = df[df['PPP'] < 1.2]
+df = df[df['PPP'] < 2]
 
 print(df)
 
@@ -126,35 +127,57 @@ df['custom_line'] = df['Region'].map(custom_line)
 fig, ax = plt.subplots(figsize=(10, 10))
 
 def update(Date):
-    # Filtrar datos por año
+    # Filter dataframe by date
     ax.clear()
     filtered_df = df[df['Date'] == Date]
     usa = filtered_df['AVG_Weight'].max() * 10
+    median = filtered_df.loc[filtered_df['ISO3'] == 'USA', 'AVG_Weight'].max()
 
-    # Crear gráfico de dispersión
+    # Create scatter plot
     scatter = ax.scatter(filtered_df['PPP'], filtered_df['NGDPDPC'], s=filtered_df['Percent'] * 10000,
                          edgecolor=filtered_df['custom_line'], facecolor=filtered_df['custom_area'],
                          linewidth=0.5)
 
-    # Añadir títulos y etiquetas
-    ax.text(0, 1.05, 'Income Inequality', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
-    ax.text(0, 1.02, 'Differences between PPP and market exchanges rates', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
+    # Add title and labels
+    ax.text(0, 1.05, 'Relationship of GDP Per Capita and Price Levels', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
+    ax.text(0, 1.02, 'Comparing inequalities Between PPP and Market Exchanges Rates by Country', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
     ax.set_xlabel('GAP Between PPP and Exchange Rate', fontsize=10, fontweight='bold')
     ax.set_ylabel('GDP Per Capita ($US)', fontsize=10, fontweight='bold')
-    ax.set_xlim(0, 1.2)
+    ax.set_xlim(0, 2)
     ax.set_ylim(0, usa)
     ax.yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x):,}k'))
     ax.grid(True, linestyle='-', color='grey', linewidth=0.08)
-    ax.set_yticks(np.linspace(0, usa, 7))
+    ax.set_xticks(np.linspace(0, 2, 9))
+    ax.set_yticks(np.linspace(0, usa, 9))
 
-    # Añadir línea de tendencia
-    z = np.polyfit(filtered_df['PPP'], filtered_df['NGDPDPC'], 1, w=filtered_df['NGDPD'])
+    # Add line regression
+    z = np.polyfit(filtered_df['PPP'], filtered_df['NGDPDPC'], 2, w=filtered_df['NGDPD'])
     p = np.poly1d(z)
-    ax.plot(filtered_df['PPP'], p(filtered_df['PPP']), color='darkred', linewidth=0.5)
+    x_range = np.linspace(filtered_df['PPP'].min(), filtered_df['PPP'].max(), 100)
+    y_range = p(x_range)
+    plt.plot(x_range, y_range, color='darkred', linewidth=0.5)
 
-    # Rellenar áreas roja y verde
+    # Add line median
+    plt.axhline(y=median, color='darkred', linewidth=0.25, linestyle='--')
+
+    # Add text median
+    plt.text(1.7, median*1.2, f'Median: {median:,.2f}k',
+        fontsize=9, ha='right', va='top',
+        fontweight='bold', color='darkred')
+
+    # Element legend
+    legend_elements = [
+        Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=region, alpha=0.35)
+        for region, color in custom_line.items()
+    ]
+
+    # Create legend
+    legend = plt.legend(handles=legend_elements, title='Region', title_fontsize='10', fontsize='9', loc='upper left')
+    plt.setp(legend.get_title(), fontweight='bold')
+
+    # Fill red and green areas
     ax.fill_betweenx(y=[0, usa], x1=0, x2=1, color='red', alpha=0.04)
-    ax.fill_betweenx(y=[0, usa], x1=1, x2=1.25, color='green', alpha=0.04)
+    ax.fill_betweenx(y=[0, usa], x1=1, x2=2, color='green', alpha=0.04)
     
     # Add Year label
     formatted_date = Date.strftime('%Y-%m')
@@ -169,12 +192,12 @@ def update(Date):
     fontsize=8, 
     color='gray')
 
-# Configurar animación
+# Configurate animation...
 years = sorted(df['Date'].unique())
-ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=250, blit=False)
+ani = animation.FuncAnimation(fig, update, frames=years, repeat=False, interval=800, blit=False)
 
-# Guardar la animación :)
-ani.save('C:/Users/guill/Desktop/FIG_PPP_Inequalities2.webp', writer='imagemagick', fps=25)
+# Save the animation :)
+ani.save('C:/Users/guillem.maya/Desktop/FIG_PPP_Inequalities.webp', writer='imagemagick', fps=10)
 
-# Mostrar el gráfico
+# Show the plot!
 plt.show()
