@@ -104,7 +104,9 @@ df = df.sort_values(by=['Year', 'NGDPDPC'])
 
 # Calculate 'left accrual widths'
 df['LP_Cum'] = df.groupby('Date')['LP'].cumsum()
-df['Left'] = df.groupby('Date')['LP'].cumsum() - df['LP']
+df['LP_Per'] = df['LP'] / df.groupby('Date')['LP'].transform('sum')
+df['LP_Cum_Per'] = df['LP_Cum'] / df.groupby('Date')['LP_Cum'].transform('max')
+df['Left'] = df['LP_Cum_Per'] - df['LP_Per']
 
 # Calculate GDP Average weighted by Population and partitioned by Year
 df['AVG_Weight'] = df.groupby('Date')['NGDPDPC'].transform(lambda x: np.average(x, weights=df.loc[x.index, 'LP']))
@@ -170,13 +172,13 @@ def update(date):
     colors = palette(norm(subset['GDPcum']))
     
     # Create a Matplotlib plot
-    bars = plt.bar(subset['Left'], subset['NGDPDPC'], width=subset['LP'], 
+    bars = plt.bar(subset['Left'], subset['NGDPDPC'], width=subset['LP_Per'], 
             color=colors, alpha=1, align='edge', edgecolor='grey', linewidth=0.1)
     
     # Configuration grid and labels
     plt.text(0, 1.05, 'Distribution of Global GDP', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
     plt.text(0, 1.02, 'Evolution of Countries from 1960 to 2029', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
-    plt.xlim(0, subset['LP_Cum'].max())
+    plt.xlim(0, subset['LP_Cum_Per'].max())
     plt.ylim(0, subset_usa['NGDPDPC'].max() * 1.05)
     plt.grid(axis='x')
     plt.grid(axis='y', linestyle='--', linewidth=0.5, color='lightgray')
@@ -184,9 +186,9 @@ def update(date):
     plt.ylabel('GDP per capita (US$)', fontsize=10, fontweight='bold')
     plt.tick_params(axis='x', labelsize=9)
     plt.tick_params(axis='y', labelsize=9)
-    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(round(x, -2)):,}'))
+    plt.gca().xaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(x*100):,}%'))
     plt.gca().yaxis.set_major_formatter(ticker.FuncFormatter(lambda x, _: f'{int(round(x, -3)):,}'))
-    plt.xticks(np.linspace(0, subset['LP_Cum'].max(), 5))
+    plt.xticks(np.linspace(0, subset['LP_Cum_Per'].max(), 5))
     plt.yticks(np.linspace(0, subset_usa['NGDPDPC'].max() * 1.05, 8))
         
     # Add Labels to relevant countries
