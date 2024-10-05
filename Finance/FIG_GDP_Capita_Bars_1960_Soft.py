@@ -114,42 +114,36 @@ df['AVG_Weight'] = df.groupby('Date')['NGDPDPC'].transform(lambda x: np.average(
 # Add a total GDP column and cummulative it
 df['GDP'] = df['NGDPDPC'] * df['LP']
 df['GDPcum'] = df.groupby('Date')['GDP'].cumsum()
+df['GDP_Per'] = df['GDP'] / df.groupby('Date')['GDP'].transform('sum')
 df['NGDPDPC_Change'] = ((df['NGDPDPC'] / df.groupby('ISO3')['NGDPDPC'].transform('first')) - 1) * 100
-
-# Define function to calculate Gini coefficient
-def gini(x):
-    x = np.array(x)
-    x = np.sort(x)
-    n = len(x)
-    gini_index = (2 * np.sum(np.arange(1, n + 1) * x) - (n + 1) * np.sum(x)) / (n * np.sum(x))
-    return gini_index
-
-df['Gini'] = df.groupby('Date')['NGDPDPC'].transform(lambda x: gini(x))
-
-# Define function to calculate a variation coefFicient
-def variation(x):
-    x = np.array(x)
-    mean = np.mean(x)
-    standard_dev = np.std(x, ddof=0)
-    var = (standard_dev / mean) * 100
-    return var
-
-df['Variation'] = df.groupby('Date')['NGDPDPC'].transform(lambda x: variation(x))
 
 # Copy a df sample to calculate a median
 df_sample = df.copy()
 columns = df.columns
-df_sample = np.repeat(df_sample.values, df_sample['LP'].astype(int) * 10, axis=0)
+df_sample = np.repeat(df_sample.values, df_sample['LP'].astype(int), axis=0)
 df_sample = pd.DataFrame(df_sample, columns=columns)
-df_sample = df_sample.groupby('Date')['NGDPDPC'].median().reset_index()
-df_sample = df_sample.rename(columns={'NGDPDPC': 'Median'})
-df_sample['Median_Change'] =  ((df_sample['Median'] /  df_sample['Median'].iloc[0]) -1) * 100
+df_sample.dropna(subset=['NGDPDPC'], inplace=True)
+df_sample['NGDPDPC'] = pd.to_numeric(df_sample['NGDPDPC'], errors='coerce')
+df_sample['GDPcum'] = df_sample.groupby('Date')['NGDPDPC'].transform('cumsum')
+
+# Function to get median row
+def medianrow(group):
+    medianrow = len(group) // 2  # Índice de la mitad
+    return group.iloc[medianrow]
+df_sample = df_sample.groupby('Date').apply(medianrow).reset_index(drop=True)
+
+# Transform columns
+df_sample = df_sample[['Date', 'NGDPDPC', 'GDPcum']].reset_index(drop=True)
+df_sample = df_sample.rename(columns={'NGDPDPC': 'Median', 'GDPcum': 'Median_Total'})
 
 # Merge queries
 df = df.merge(df_sample, how='left', on='Date')
 
-print(df)
+# Add percentage bottom 50
+df['Median_Total_Per'] = df['Median_Total'] / df.groupby('Date')['GDP'].transform('sum')
 
+print(df)
+ 
 # Data Visualization
 # =====================================================================
 # Seaborn figure style
@@ -199,7 +193,8 @@ def update(date):
 
     # Add Median Line and Label
     median = subset['Median'].max()
-    median_change = subset.iloc[0]['Median_Change']
+    median_total = subset.iloc[0]['Median_Total']
+    median_total_per = subset.iloc[0]['Median_Total_Per']
     maxis = subset_usa['NGDPDPC'].max()
     
     plt.axhline(
@@ -210,7 +205,7 @@ def update(date):
 
     plt.text(
         x=subset['Left'].max() * 0.02,
-        y=median + (maxis * 0.04),
+        y=median + (maxis * 0.06),
         s=f'GDP Capita Median: {median:,.0f}',
         color='darkred',
         verticalalignment='bottom',
@@ -220,15 +215,16 @@ def update(date):
 
     plt.gca().text(
                 subset['Left'].max() * 0.02,
-                median + (maxis * 0.02),
-                f'Cumulative growth: {median_change:,.0f}%', 
+                median + (maxis * 0.04),
+                f'Bottom 50 - Total GDP: {median_total:,.0f} MM ({median_total_per * 100:.2f}%)', 
                 ha='left', va='center', 
                 fontsize=9, 
-                color='darkgreen')
+                color='#737373')
     
     # Add USA Line and Label
     pibc_usa = subset_usa.iloc[0]['NGDPDPC']
-    pibc_usa_change = subset_usa.iloc[0]['NGDPDPC_Change']
+    pib_usa = subset_usa.iloc[0]['GDP']
+    pib_usa_per = subset_usa.iloc[0]['GDP_Per']
     
     plt.axhline(
         y=pibc_usa, 
@@ -238,30 +234,21 @@ def update(date):
     
     plt.text(
         x=subset['Left'].max() * 0.02,
-        y=pibc_usa * 0.96,
+        y=pibc_usa * 0.95,
         s=f'GDP Capita USA: {pibc_usa:,.0f}',
         color='darkblue',
         fontsize=10,
         verticalalignment='bottom',
         horizontalalignment='left',
-
         weight='bold')
 
     plt.gca().text(
                 subset['Left'].max() * 0.02,
-                pibc_usa * 0.94,
-                f'Cumulative growth: {pibc_usa_change:,.0f}%', 
+                pibc_usa * 0.93,
+                f'USA - Total GDP: {pib_usa:,.0f} MM ({pib_usa_per * 100:.2f}%)', 
                 ha='left', va='center', 
                 fontsize=9, 
-                color='darkgreen')
-    
-    plt.gca().text(
-                subset['Left'].max() * 0.02,
-                pibc_usa * 0.91,
-                f'Median-relative: {pibc_usa / median * 100:,.0f}%', 
-                ha='left', va='center', 
-                fontsize=9, 
-                color='darkgrey')
+                color='#737373')
 
     # Cover countries going outside plot
     formatted_date = date.strftime('%Y-%m') 
