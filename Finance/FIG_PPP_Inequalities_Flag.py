@@ -84,12 +84,9 @@ print(df)
 # =====================================================================
 fig = go.Figure()
 
-# Determinación de la dimensión mínima y el valor máximo
-minDim = df[["PPP", "NGDPDPC"]].max().idxmax()
-maxi = df[minDim].max()
-
 # Tamaño de los marcadores
-marker_size = np.sqrt(df["NGDPD"] / df["NGDPD"].max()) * maxi * 0.85 + maxi * 0.03
+marker_size = np.sqrt(df["NGDPD"] / df["NGDPD"].max()) * 100 + 3
+line_width  = np.sqrt(df["NGDPD"] / df["NGDPD"].max()) * 4 + 0.5
 
 # Add scatter plot
 fig.add_trace(go.Scatter(
@@ -101,7 +98,7 @@ fig.add_trace(go.Scatter(
         size=marker_size,
         color="rgba(0,0,0,0)",
         line=dict(
-            width=2,
+            width=line_width,
             color='black'
         )
     ),
@@ -176,12 +173,12 @@ fig.add_shape(
 
 # Configuration plot
 fig.update_layout(
-    title="<b>Relationship of GDP per Capita and Price Exchange Rates</b>",
+    title="<b>Global Inequalities in GDP per Capita</b>",
     title_x=0.11,
     title_font=dict(size=16),
     annotations=[
         dict(
-            text="Comparing inequalities Between Countries trought the relation between GDP per Capita and Price Exchanges Rates",
+            text="Exploring Discrepancies between Market Exchanges Rates and Purchasing Power Parity",
             xref="paper",
             yref="paper",
             x=0,
@@ -194,10 +191,20 @@ fig.update_layout(
             xref="paper",
             yref="paper",
             x=0,
-            y=-0.12,
+            y=-0.13,
             showarrow=False,
             font=dict(size=10),
             align="left"
+        ),
+        dict(
+            text=f"2024",
+            xref="paper", 
+            yref="paper",
+            x=1, 
+            y=1.1,
+            showarrow=False,
+            font=dict(size=22, color='lightgray', weight='bold'),
+            align="right"
         )
     ],
     xaxis=dict(
@@ -223,6 +230,41 @@ fig.update_layout(
     width=750,
     plot_bgcolor="white",
     paper_bgcolor="white"
+)
+
+# Add a custom legend
+size_legend = ['Smaller', 'Middle', 'Bigger']
+size_values = [5, 10, 20]
+
+for label, size in zip(size_legend, size_values):
+    fig.add_trace(go.Scatter(
+        x=[None],
+        y=[None],
+        mode='markers',
+        marker=dict(
+            size=size,
+            color="rgba(0,0,0,0)",
+            line=dict(
+                width=1,
+                color='black'
+            )
+        ),
+        legendgroup='size',
+        showlegend=True,
+        name=f'{label}'
+    ))
+
+fig.update_layout(
+    legend=dict(
+        title=dict(text='<b>   GDP Scale</b>'), 
+        font=dict(size=11),
+        x=0.025,
+        y=0.95,
+        xanchor='left',
+        bgcolor='white',
+        bordercolor='black',
+        borderwidth=1
+    )
 )
 
 # Save as HTML file!
