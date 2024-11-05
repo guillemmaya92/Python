@@ -268,7 +268,7 @@ fig.update_layout(
 )
 
 # Save as HTML file!
-fig.write_html("C:/Users/guill/Desktop/FIG_PPP_Inequalities_Flag.png.html")
+fig.write_html("C:/Users/guill/Desktop/FIG_PPP_Inequalities_Flag.html")
 fig.write_image("C:/Users/guill/Desktop/FIG_PPP_Inequalities_Flag.png")
 
 # Show the plot!
