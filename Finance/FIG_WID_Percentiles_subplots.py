@@ -65,7 +65,6 @@ palette = {
     'China': '#C00000', #Red
     'USA': '#153D64', #Blue
     'France': '#3C7D22', #Green
-    'Spain': '#D2A000',#Yellow
     'World': '#1C1C1C' #Black
 }
 
