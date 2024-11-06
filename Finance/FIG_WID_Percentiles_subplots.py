@@ -10,7 +10,7 @@ from matplotlib.lines import Line2D
 # Data Extraction
 # ===================================================
 # Define CSV path
-path = r'C:\Users\guill\Downloads\data\CHECK'
+path = r'C:\Users\guillem.maya\Downloads\data'
 
 # List to save dataframe
 list = []
@@ -25,7 +25,7 @@ for archivo in os.listdir(path):
 df = pd.concat(list, ignore_index=True)
 
 # Filter dataframes
-country = ['US', 'FR', 'ES', 'CN']
+country = ['US', 'FR', 'ES', 'CN', 'WO']
 variable = ['sdiincj992', 'shwealj992']
 percentile = ['p0p50', 'p90p100']
 year = range(1980, 2022)
@@ -33,14 +33,22 @@ df = df[(df['country'].isin(country)) & df['variable'].isin(variable) & df['perc
 
 # Data Manipulation
 # ===================================================
+# Filtering outliers
+df = df[~((df['country'] == 'WO') & 
+                   (df['variable'] == 'shwealj992') & 
+                   (df['year'] < 2002))]
+
 # Replace values
 df['size'] = df['percentile'].replace({'p0p50': '0.5', 'p90p100': '0.1'})
 df['percentile'] = df['percentile'].replace({'p0p50': 'Bottom 50', 'p90p100': 'Top 10'})
 df['variable'] = df['variable'].replace({'sdiincj992': 'Income', 'shwealj992': 'Wealth'})
-df['country'] = df['country'].replace({'CN': 'China', 'FR': 'France', 'US': 'USA', 'ES': 'Spain'})
+df['country'] = df['country'].replace({'CN': 'China', 'FR': 'France', 'US': 'USA', 'ES': 'Spain', 'WO': 'World'})
 
 # Concatenate country and variable
 df['variable_percentile'] = df['percentile'].astype(str) + ' (' + df['variable'].astype(str) + ')'
+
+# Selection columns
+df = df[['variable_percentile', 'country', 'year', 'size', 'value']]
 
 # Selection columns
 df = df[['variable_percentile', 'country', 'year', 'size', 'value']]
@@ -57,7 +65,8 @@ palette = {
     'China': '#C00000', #Red
     'USA': '#153D64', #Blue
     'France': '#3C7D22', #Green
-    'Spain': '#D2A000' #Yellow
+    'Spain': '#D2A000',#Yellow
+    'World': '#1C1C1C' #Black
 }
 
 # Multiple Line Subplots
@@ -69,7 +78,7 @@ g.map(sns.lineplot, 'year', 'value', linestyle='-', marker='o', markersize=0, li
 
 # Title and subtitle
 plt.text(-1.12, 2.43, 'Percentiles of Income and Wealth', ha='left', va='top', fontsize=12, fontweight='bold', transform=plt.gca().transAxes)
-plt.text(-1.12, 2.36, 'Country Comparison: Evolution of the Bottom 50% and Top 10% (1995-2022)', ha='left', va='top', fontsize=9, color='#262626', transform=plt.gca().transAxes)
+plt.text(-1.12, 2.36, 'Country Comparison: Evolution of the Bottom 50% and Top 10% (1980-2022)', ha='left', va='top', fontsize=9, color='#262626', transform=plt.gca().transAxes)
 
 # Adjust subplots
 plt.subplots_adjust(top=0.9)
@@ -110,7 +119,20 @@ g.set_titles('')
 # Add Data Source
 plt.text(-1.12, -0.15, 'Data Source: World Inequality Database (WID)', 
     transform=plt.gca().transAxes, 
-    fontsize=8, 
+    fontsize=8,
+    fontweight='bold',
+    color='gray')
+
+# Add Data Source
+plt.text(-1.12, -0.21, 'Income: Post-tax national income is the sum of primary incomes over all sectors (private and public), minus taxes.', 
+    transform=plt.gca().transAxes, 
+    fontsize=7,
+    fontstyle='italic',
+    color='gray')
+plt.text(-1.12, -0.26, 'Wealth: Net personal wealth is the total value of non-financial and financial assets (housing, land, deposits, bonds, equities, etc.) held by households, minus their debts.', 
+    transform=plt.gca().transAxes, 
+    fontsize=7,
+    fontstyle='italic',
     color='gray')
 
  # Make space for legend
@@ -126,7 +148,7 @@ legend = ax.legend(handles=legend_elements, title='Region', title_fontsize='9', 
 plt.setp(legend.get_title(), fontweight='bold')
 
 # Save the figure
-plt.savefig('C:/Users/guill/Desktop/FIG_WID_Percentiles_subplots.png', format='png', dpi=300, bbox_inches='tight')
+plt.savefig('C:/Users/guillem.maya/Desktop/FIG_WID_Percentiles_subplots.png', format='png', dpi=300, bbox_inches='tight')
 
 # Show the plot
 plt.show()
