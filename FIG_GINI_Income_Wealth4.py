@@ -1,3 +1,5 @@
+# Libraries
+# =====================================================
 import numpy as np
 import pandas as pd
 from scipy.interpolate import PchipInterpolator
@@ -6,13 +8,13 @@ import matplotlib.pyplot as plt
 # Data Extraction 
 # =====================================================
 # Open csv file as dataframe
-file_path = r"C:\Users\guillem.maya\Downloads\data\WID_data_ES.csv"
+file_path = r"C:\Users\guillem.maya\Downloads\data\WID_data_CN.csv"
 df = pd.read_csv(file_path, delimiter=';')
 
 # Filter dataframe
 variable = ['shwealj992', 'scaincj992', 'sdiincj992']
 percentile = ['p10p100', 'p20p100', 'p30p100', 'p40p100', 'p50p100', 'p60p100', 'p70p100', 'p80p100', 'p90p100']
-year = [1985, 2022]
+year = [2002, 2022]
 df = df[df['variable'].isin(variable) & df['percentile'].isin(percentile) & df['year'].isin(year)]
 
 # Transformation
@@ -52,15 +54,15 @@ incomef2 = grouped_data.get(('sdiincj992', max_year))[:, 1]
 dfv = pd.read_csv(file_path, delimiter=';')
 
 # Filter dataframe
-variablev = ['adiincj992', 'ahwealj992']
+variablev = ['adiincj992', 'ahwealj992', 'xlceuxi999']
 percentilev = ['p0p100']
 yearv = [2022]
 dfv = dfv[dfv['variable'].isin(variablev) & dfv['percentile'].isin(percentilev) & dfv['year'].isin(yearv)]
 
 # Transformation
 dfv = dfv[['variable', 'year', 'percentile', 'value']]
-wealthvalue = dfv.iloc[0]['value']
-incomevalue = dfv.iloc[1]['value']
+incomevalue = dfv[dfv['variable'] == 'adiincj992']['value'].iloc[0] / dfv[dfv['variable'] == 'xlceuxi999']['value'].iloc[0]
+wealthvalue = dfv[dfv['variable'] == 'ahwealj992']['value'].iloc[0] / dfv[dfv['variable'] == 'xlceuxi999']['value'].iloc[0]
 
 # Gini Function
 # =====================================================
@@ -99,7 +101,7 @@ dfi['Mean'] = dfi['Income'].mean()
 dfi['Median'] = dfi['Income'].median()
 dfi['Gini'] = gini(dfi['Income'])
 
-# Income Inequality (1985)
+# Income Inequality (2002)
 # =====================================================
 # Datos de entrada
 x = percentile
@@ -153,7 +155,7 @@ dfw['Mean'] = dfw['Wealth'].mean()
 dfw['Median'] = dfw['Wealth'].median()
 dfw['Gini'] = gini(dfw['Wealth'])
 
-# Wealth Inequality (1985)
+# Wealth Inequality (2002)
 # =====================================================
 # Datos de entrada
 x = percentile
@@ -209,9 +211,9 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans
 # Create figure and lines
 plt.figure(figsize=(10, 10))
 plt.plot(dfi['x_suave'], dfi['y_suave'], label='Income (2022)', color='darkblue')
-plt.plot(dfi80['x_suave'], dfi80['y_suave'], label='Income (1985)', color='darkblue', linewidth=0.5, linestyle='-')
+plt.plot(dfi80['x_suave'], dfi80['y_suave'], label='Income (2002)', color='darkblue', linewidth=0.5, linestyle='-')
 plt.plot(dfw['x_suave'], dfw['y_suave'], label='Wealth (2022)', color='darkred')
-plt.plot(dfw80['x_suave'], dfw80['y_suave'], label='Wealth (1985)', color='darkred', linewidth=0.5, linestyle='-')
+plt.plot(dfw80['x_suave'], dfw80['y_suave'], label='Wealth (2002)', color='darkred', linewidth=0.5, linestyle='-')
 plt.plot(dfe['POP_Cum'], dfe['GDP_Cum'], label='Perfect Distribution', color='darkgrey')
 
 # Wealth Dots 
@@ -300,13 +302,13 @@ Ginii80 = dfi80['Gini'].iloc[-1]
 
 # Add legend
 plt.text(0.05, 0.96, f'Gini Wealth (2022): {Giniw:.2f}', color='darkred', fontsize=9, fontweight='bold')
-plt.text(0.05, 0.93, f'Gini Wealth (1985): {Giniw80:.2f}', color='darkred', fontsize=9)
+plt.text(0.05, 0.93, f'Gini Wealth (2002): {Giniw80:.2f}', color='darkred', fontsize=9)
 plt.text(0.05, 0.90, f'Gini Income (2022): {Ginii:.2f}', color='darkblue', fontsize=9, fontweight='bold')
-plt.text(0.05, 0.87, f'Gini Income (1985): {Ginii80:.2f}', color='darkblue', fontsize=9)
+plt.text(0.05, 0.87, f'Gini Income (2002): {Ginii80:.2f}', color='darkblue', fontsize=9)
 plt.text(0.05, 0.84, 'Perfect Distribution: 0', color='darkgrey', fontsize=9, fontweight='bold')
 
 # Title and labels
-plt.suptitle('   Spain Inequality 1985-2022', fontsize=16, fontweight='bold', y=0.95)
+plt.suptitle('   China Inequality 2002-2022', fontsize=16, fontweight='bold', y=0.95)
 plt.title('Income and Wealth distribution', fontsize=12, fontweight='bold', color='darkgrey', pad=20)
 plt.xlabel('Cumulative Population (%)', fontsize=10, fontweight='bold')
 plt.ylabel('Cumulative Income / Wealth (%)', fontsize=10, fontweight='bold')
