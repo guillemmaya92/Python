@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 # Data Extraction
 # ===================================================
 # Define CSV path
-path = r'C:\Users\guill\Downloads\data'
+path = r'C:\Users\guillem.maya\Downloads\data'
 
 # List to save dataframe
 list = []
@@ -23,18 +23,21 @@ for archivo in os.listdir(path):
 # Combine all dataframes and create a copy
 df = pd.concat(list, ignore_index=True)
 dfv = df.copy()
+dfr = df.copy()
 dfp = df.copy()
 
 # Filter dataframes
-country = ['WO']
+country = ['ES']
 variable = ['sdiincj992', 'shwealj992']
 variablev = ['adiincj992', 'ahwealj992']
+variablex = ['xlceuxi999']
 variablep = ['npopuli999']
 percentile = ['p10p100', 'p20p100', 'p30p100', 'p40p100', 'p50p100', 'p60p100', 'p70p100', 'p80p100', 'p90p100']
 percentilev = ['p0p100']
-year = [1985, 2022]
+year = [2002, 2022]
 df = df[(df['country'].isin(country)) & df['variable'].isin(variable) & df['percentile'].isin(percentile) & df['year'].isin(year)]
 dfv = dfv[(dfv['country'].isin(country)) & dfv['variable'].isin(variablev) & dfv['percentile'].isin(percentilev) & dfv['year'].isin(year)]
+dfr = dfr[(dfr['country'].isin(country)) & dfr['variable'].isin(variablex) & dfr['percentile'].isin(percentilev) & dfr['year'].isin(year)]
 dfp = dfp[(dfp['country'].isin(country)) & dfp['variable'].isin(variablep) & dfp['percentile'].isin(percentilev) & dfp['year'].isin(year)]
 
 # Transformation 1
@@ -43,6 +46,9 @@ df['percentile'] = df['percentile'].str[1:3].astype(int) / 100
 df = df[['country', 'variable', 'year', 'percentile', 'value']]
 
 # Selection columns 2
+dfr = dfr[['country', 'year', 'value']]
+dfv = pd.merge(dfv, dfr, on=['country', 'year'], how='left')
+dfv['value'] = dfv['value_x'] / dfv['value_y'] 
 dfv = dfv[['country', 'variable', 'year', 'value']]
 
 # Selections columns 3
@@ -134,9 +140,9 @@ df = df[
 # Dataframes Lines
 # ===================================================
 dfi = df[(df['year'] == 2022) & (df['variable'] == 'income')]
-dfip = df[(df['year'] == 1985) & (df['variable'] == 'income')]
+dfip = df[(df['year'] == 2002) & (df['variable'] == 'income')]
 dfw = df[(df['year'] == 2022) & (df['variable'] == 'wealth')]
-dfwp = df[(df['year'] == 1985) & (df['variable'] == 'wealth')]
+dfwp = df[(df['year'] == 2002) & (df['variable'] == 'wealth')]
 
 data = {
     'population_cum_percent': [0, 1],
@@ -165,14 +171,14 @@ plt.rcParams.update({'font.family': 'sans-serif', 'font.sans-serif': ['Open Sans
 # Create figure and lines
 plt.figure(figsize=(10, 10))
 plt.plot(dfi['population_cum_percent'], dfi['variable_cum_percent'], label='Income (2022)', color='darkblue')
-plt.plot(dfip['population_cum_percent'], dfip['variable_cum_percent'], label='Income (1985)', color='darkblue', linewidth=0.5, linestyle='-')
+plt.plot(dfip['population_cum_percent'], dfip['variable_cum_percent'], label='Income (2002)', color='darkblue', linewidth=0.5, linestyle='-')
 plt.plot(dfw['population_cum_percent'], dfw['variable_cum_percent'], label='Wealth (2022)', color='darkred')
-plt.plot(dfwp['population_cum_percent'], dfwp['variable_cum_percent'], label='Wealth (1985)', color='darkred', linewidth=0.5, linestyle='-')
+plt.plot(dfwp['population_cum_percent'], dfwp['variable_cum_percent'], label='Wealth (2002)', color='darkred', linewidth=0.5, linestyle='-')
 plt.plot(dfe['population_cum_percent'], dfe['variable_cum_percent'], label='Perfect Distribution', color='darkgrey')
 
 # Title and labels
-plt.suptitle('   Spain Inequality 1985-2022', fontsize=16, fontweight='bold', y=0.95)
-plt.title('Income and Wealth distribution', fontsize=12, fontweight='bold', color='darkgrey', pad=20)
+plt.text(0, 1.05, 'Spain Inequality 2002-2022', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
+plt.text(0, 1.02, 'Income and Wealth distribution', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
 plt.xlabel('Cumulative Population (%)', fontsize=10, fontweight='bold')
 plt.ylabel('Cumulative Income / Wealth (%)', fontsize=10, fontweight='bold')
 plt.xlim(0, 1)
@@ -264,18 +270,10 @@ Ginii80 = dfip['gini'].iloc[-1]
 
 # Add legend
 plt.text(0.05, 0.96, f'Gini Wealth (2022): {Giniw:.2f}', color='darkred', fontsize=9, fontweight='bold')
-plt.text(0.05, 0.93, f'Gini Wealth (1985): {Giniw80:.2f}', color='darkred', fontsize=9)
+plt.text(0.05, 0.93, f'Gini Wealth (2002): {Giniw80:.2f}', color='darkred', fontsize=9)
 plt.text(0.05, 0.90, f'Gini Income (2022): {Ginii:.2f}', color='darkblue', fontsize=9, fontweight='bold')
-plt.text(0.05, 0.87, f'Gini Income (1985): {Ginii80:.2f}', color='darkblue', fontsize=9)
+plt.text(0.05, 0.87, f'Gini Income (2002): {Ginii80:.2f}', color='darkblue', fontsize=9)
 plt.text(0.05, 0.84, 'Perfect Distribution: 0', color='darkgrey', fontsize=9, fontweight='bold')
-
-# Title and labels
-plt.suptitle('   Spain Inequality 1985-2022', fontsize=16, fontweight='bold', y=0.95)
-plt.title('Income and Wealth distribution', fontsize=12, fontweight='bold', color='darkgrey', pad=20)
-plt.xlabel('Cumulative Population (%)', fontsize=10, fontweight='bold')
-plt.ylabel('Cumulative Income / Wealth (%)', fontsize=10, fontweight='bold')
-plt.xlim(0, 1)
-plt.ylim(0, 1)
 
 # Configuration
 plt.grid(True, linestyle='-', color='grey', linewidth=0.08)
@@ -290,17 +288,19 @@ plt.text(1, 1.06, f'2022',
 # Add Data Source
 plt.text(0, -0.1, 'Data Source: World Inequality Database (WID)', 
     transform=plt.gca().transAxes, 
-    fontsize=8, 
+    fontsize=8,
+    fontweight='bold',
     color='gray')
 
 # Add Notes
 plt.text(0, -0.12, 'Notes: The distribution of values, based on Income and Wealth Inequalities, has been smoothed using a monotonic PCHIP interpolator', 
     transform=plt.gca().transAxes,
-    fontsize=8, 
+    fontsize=8,
+    fontstyle='italic',
     color='gray')
 
 # Save the figure
-plt.savefig('C:/Users/guill/Desktop/FIG_GINI_Income_Wealth.png', format='png', dpi=300, bbox_inches='tight')
+plt.savefig('C:/Users/guillem.maya/Desktop/FIG_GINI_Income_Wealth.png', format='png', dpi=300, bbox_inches='tight')
 
 # Show the plot
 plt.show()
