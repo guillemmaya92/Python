@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 # Data Extraction 
 # =====================================================
 # Open csv file as dataframe
-file_path = r"C:\Users\guillem.maya\Downloads\data\WID_data_CN.csv"
+file_path = r"C:\Users\guillem.maya\Downloads\data\WID_data_WO.csv"
 df = pd.read_csv(file_path, delimiter=';')
 
 # Filter dataframe
@@ -308,8 +308,8 @@ plt.text(0.05, 0.87, f'Gini Income (2002): {Ginii80:.2f}', color='darkblue', fon
 plt.text(0.05, 0.84, 'Perfect Distribution: 0', color='darkgrey', fontsize=9, fontweight='bold')
 
 # Title and labels
-plt.suptitle('   China Inequality 2002-2022', fontsize=16, fontweight='bold', y=0.95)
-plt.title('Income and Wealth distribution', fontsize=12, fontweight='bold', color='darkgrey', pad=20)
+plt.text(0, 1.05, 'World Inequality 2002-2022', fontsize=13, fontweight='bold', ha='left', transform=plt.gca().transAxes)
+plt.text(0, 1.02, 'Income and Wealth distribution', fontsize=9, color='#262626', ha='left', transform=plt.gca().transAxes)
 plt.xlabel('Cumulative Population (%)', fontsize=10, fontweight='bold')
 plt.ylabel('Cumulative Income / Wealth (%)', fontsize=10, fontweight='bold')
 plt.xlim(0, 1)
@@ -328,13 +328,15 @@ plt.text(1, 1.06, f'2022',
 # Add Data Source
 plt.text(0, -0.1, 'Data Source: World Inequality Database (WID)', 
     transform=plt.gca().transAxes, 
-    fontsize=8, 
+    fontsize=8,
+    fontweight='bold',
     color='gray')
 
 # Add Notes
 plt.text(0, -0.12, 'Notes: The distribution of values, based on Income and Wealth Inequalities, has been smoothed using a monotonic PCHIP interpolator', 
     transform=plt.gca().transAxes,
-    fontsize=8, 
+    fontsize=8,
+    fontstyle='italic',
     color='gray')
 
 # Save the figure
