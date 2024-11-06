@@ -4,12 +4,15 @@ import os
 import pandas as pd
 import numpy as np
 from scipy.interpolate import PchipInterpolator
+from PIL import Image
+from urllib.request import urlopen
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 import matplotlib.pyplot as plt
 
 # Data Extraction
 # ===================================================
 # Define CSV path
-path = r'C:\Users\guillem.maya\Downloads\data'
+path = r'C:\Users\guill\Downloads\data\CHECK'
 
 # List to save dataframe
 list = []
@@ -191,8 +194,8 @@ xpop = dfwb50['population_cum_percent'].iloc[0]
 ypop = dfwb50['variable_cum_percent'].iloc[0]
 vpop = dfwb50['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='darkred', label='Median Population', zorder=5)
-plt.text(x=xpop, y=ypop+0.05, 
-        s=f'Bottom 50:\n<{vpop: ,.0f}€\nB{(xpop) * 100: ,.0f}%-{(ypop) * 100: ,.1f}%', 
+plt.text(x=xpop, y=ypop+0.07, 
+        s=f'Bottom 50:\n<{vpop: ,.0f}€\n{(ypop) * 100: ,.1f}%', 
         color='darkred', 
         va='center', 
         ha='center',
@@ -203,8 +206,8 @@ xpop = dfwt10['population_cum_percent'].iloc[0]
 ypop = dfwt10['variable_cum_percent'].iloc[0]
 vpop = dfwt10['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='darkred', label='Median Wealth', zorder=5)
-plt.text(x=xpop-0.06, y=ypop, 
-         s=f'Top 10:\n>{vpop: ,.0f}€\nT{(1-xpop) * 100: ,.1f}%-{(1-ypop) * 100: ,.0f}%',
+plt.text(x=xpop-0.07, y=ypop, 
+         s=f'Top 10:\n>{vpop: ,.0f}€\n{(1-ypop) * 100: ,.0f}%',
          color='darkred', 
          va='center', 
          ha='center', 
@@ -215,8 +218,8 @@ xpop = dfwavg['population_cum_percent'].iloc[0]
 ypop = dfwavg['variable_cum_percent'].iloc[0]
 vpop = dfwavg['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='dimgray', label='Mean Wealth', zorder=5, marker='o', facecolor='none')
-plt.text(x=xpop-0.05, y=ypop+0.03, 
-        s=f'Mean Wealth:\n{vpop: ,.0f}€\nB{(xpop) * 100: ,.0f}%-{(ypop) * 100: ,.0f}%',  
+plt.text(x=xpop-0.07, y=ypop+0.04, 
+        s=f'Mean Wealth:\n{vpop: ,.0f}€',  
         color='dimgray', 
         va='center', 
         ha='center', 
@@ -230,7 +233,7 @@ ypop = dfib50['variable_cum_percent'].iloc[0]
 vpop = dfib50['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='darkblue', label='Median Population', zorder=5)
 plt.text(x=xpop-0.06, y=ypop+0.04, 
-        s=f'Bottom 50:\n<{vpop: ,.0f}€\nB{(xpop) * 100: ,.0f}%-{(ypop) * 100: ,.1f}%', 
+        s=f'Bottom 50:\n<{vpop: ,.0f}€\n{(ypop) * 100: ,.1f}%', 
         color='darkblue', 
         va='center', 
         ha='center', 
@@ -242,7 +245,7 @@ ypop = dfit10['variable_cum_percent'].iloc[0]
 vpop = dfit10['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='darkblue', label='Median Income', zorder=5)
 plt.text(x=xpop-0.08, y=ypop, 
-         s=f'Top 10:\n>{vpop: ,.0f}€\nT{(1-xpop) * 100: ,.1f}%-{(1-ypop) * 100: ,.0f}%',
+         s=f'Top 10:\n>{vpop: ,.0f}€\n{(1-ypop) * 100: ,.0f}%',
          color='darkblue', 
          va='center', 
          ha='center', 
@@ -254,7 +257,7 @@ ypop = dfiavg['variable_cum_percent'].iloc[0]
 vpop = dfiavg['value'].iloc[0]
 plt.scatter(x=xpop, y=ypop, color='dimgray', label='Mean Income', zorder=5, marker='o', facecolor='none')
 plt.text(x=xpop-0.06, y=ypop+0.04, 
-        s=f'Mean Income:\n{vpop: ,.0f}€\nB{(xpop) * 100: ,.0f}%-{(ypop) * 100: ,.0f}%',  
+        s=f'Mean Income:\n{vpop: ,.0f}€',  
         color='dimgray', 
         va='center', 
         ha='center', 
@@ -279,12 +282,6 @@ plt.text(0.05, 0.84, 'Perfect Distribution: 0', color='darkgrey', fontsize=9, fo
 plt.grid(True, linestyle='-', color='grey', linewidth=0.08)
 plt.gca().set_aspect('equal', adjustable='box')
 
-# Add Year label 
-plt.text(1, 1.06, f'2022',
-    transform=plt.gca().transAxes,
-    fontsize=16, ha='right', va='top',
-    fontweight='bold', color='#D3D3D3')
-
 # Add Data Source
 plt.text(0, -0.1, 'Data Source: World Inequality Database (WID)', 
     transform=plt.gca().transAxes, 
@@ -292,15 +289,44 @@ plt.text(0, -0.1, 'Data Source: World Inequality Database (WID)',
     fontweight='bold',
     color='gray')
 
-# Add Notes
+# Add Notes Calculation
 plt.text(0, -0.12, 'Notes: The distribution of values, based on Income and Wealth Inequalities, has been smoothed using a monotonic PCHIP interpolator', 
     transform=plt.gca().transAxes,
     fontsize=8,
     fontstyle='italic',
     color='gray')
 
+# Add Notes Income
+plt.text(0, -0.14, 'Income: Post-tax national income is the sum of primary incomes over all sectors (private and public), minus taxes.', 
+    transform=plt.gca().transAxes,
+    fontsize=8,
+    fontstyle='italic',
+    color='gray')
+
+# Add Notes Wealth
+plt.text(0, -0.16, 'Wealth: Net personal wealth is the total value of non-financial and financial assets (housing, land, deposits, bonds, equities, etc.) held by households, minus their debts.', 
+    transform=plt.gca().transAxes,
+    fontsize=8,
+    fontstyle='italic',
+    color='gray')
+
+# Add Notes Currency
+plt.text(0, -0.18, 'Currency: Official exchange rate of the local currency to EUR.', 
+    transform=plt.gca().transAxes,
+    fontsize=8,
+    fontstyle='italic',
+    color='gray')
+
+# Add Flag
+url = "https://raw.githubusercontent.com/guillemmaya92/world_flags_round/refs/heads/master/flags/ES.png"
+with urlopen(url) as file:
+    img_flag = np.array(Image.open(file))
+imagebox = OffsetImage(img_flag, zoom=0.05, alpha=0.5)
+ab = AnnotationBbox(imagebox, (0.97, 1.04), frameon=False, xycoords='axes fraction')
+plt.gca().add_artist(ab)
+
 # Save the figure
-plt.savefig('C:/Users/guillem.maya/Desktop/FIG_GINI_Income_Wealth.png', format='png', dpi=300, bbox_inches='tight')
+plt.savefig('C:/Users/guill/Desktop/FIG_GINI_Income_Wealth.png', format='png', dpi=300, bbox_inches='tight')
 
 # Show the plot
 plt.show()
