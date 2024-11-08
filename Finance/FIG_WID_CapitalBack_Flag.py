@@ -38,23 +38,23 @@ dfr = df.copy()
 dfp = df.copy()
 
 # Filter dataframes
-variable = ['adiincj992', 'ahwealj992']
+variable = ['anninci992', 'anweali992']
 variabler = ['xlceuxi999']
 variablep = ['npopuli999']
 percentile = ['p0p100']
-year = [2002, 2022]
+year = [1995, 2022]
 df = df[df['variable'].isin(variable) & df['percentile'].isin(percentile) & df['year'].isin(year)]
-dfr = dfr[dfr['variable'].isin(variabler) & dfr['percentile'].isin(percentile) & dfr['year'].isin(year)]
+dfr = dfr[dfr['variable'].isin(variabler) & dfr['percentile'].isin(percentile) & dfr['year'].isin([max(year)+1])]
 dfp = dfp[dfp['variable'].isin(variablep) & dfp['percentile'].isin(percentile) & dfp['year'].isin([max(year)])]
 
 # Data Manipulation
 # ===================================================
 # Selection Columns DF
 df = df[['country', 'variable', 'year', 'value']]
-df['variable'] = df['variable'].replace({'adiincj992': 'income', 'ahwealj992': 'wealth'})
+df['variable'] = df['variable'].replace({'anninci992': 'income', 'anweali992': 'wealth'})
 
 # Selection Columns DFR
-dfr = dfr[['country', 'year', 'value']]
+dfr = dfr[['country', 'value']]
 dfr = dfr.rename(columns={'value': 'exchange'})
 
 # Selection Columns DFP
@@ -62,7 +62,7 @@ dfp = dfp[['country', 'value']]
 dfp = dfp.rename(columns={'value': 'population'})
 
 # Join Currencies DFR
-df = pd.merge(df, dfr, on=['country', 'year'], how='left')
+df = pd.merge(df, dfr, on=['country'], how='left')
 df['value_eur'] = df['value'] / df['exchange']
 
 # Join Countries
@@ -77,7 +77,7 @@ df['variable_year'] = df['variable'].astype(str) + df['year'].astype(str)
 # Pivot variable
 df = df.pivot_table(index=['country', 'country_name'], columns='variable_year', values='value_eur')
 df = df.reset_index()
-df = df[df['incomeCY'].notna() & df['incomePY'].notna() & df['wealthCY'].notna() & df['wealthPY'].notna()]
+df = df[df['incomeCY'].notna() & df['wealthCY'].notna()]
 df = df[~df['country'].isin(['SL', 'CU', 'LU'])]
 df = df[~df['country'].isin(['SZ', 'VA', 'NC', 'CI', 'MW', 'SS', 'MY'])]
 
@@ -113,7 +113,7 @@ fig.add_trace(go.Scatter(
     y=df["incomeCY"],
     mode='markers',
     text=df["country_name"],
-    customdata=np.vstack((df["wealthCY"], df["incomeVAR"], df["wealthVAR"], df["betaCY"], df["betaVAR"])).T,
+    customdata=np.vstack((df["incomeCY"], df["wealthCY"], df["incomeVAR"], df["wealthVAR"], df["betaCY"], df["betaVAR"])).T,
     marker=dict(
         size=marker_size,
         color="rgba(0,0,0,0)",
@@ -123,9 +123,9 @@ fig.add_trace(go.Scatter(
         )
     ),
     hovertemplate="<b>Country:</b> %{text}<br>" +
-                  "<b>Income Avg (€):</b> %{y:.0f}k | <b>Var. 2002:</b> %{customdata[0]:.2f}%<br>" + 
-                  "<b>Wealth Avg (€):</b> %{customdata[0]:.0f}k | <b>Var. 2002:</b> %{customdata[2]:.2f}%<br>" +
-                  "<b>Ratio:</b> %{customdata[3]:.2f} | <b>Var. 2002:</b> %{customdata[4]:.2f}pp<extra></extra>",
+                  "<b>Income Avg (€):</b> %{y:.0f}k | <b>Var. 1995:</b> %{customdata[2]:.2f}%<br>" + 
+                  "<b>Wealth Avg (€):</b> %{customdata[1]:.0f}k | <b>Var. 1995:</b> %{customdata[3]:.2f}%<br>" +
+                  "<b>Ratio:</b> %{customdata[4]:.2f} | <b>Var. 1995:</b> %{customdata[5]:.2f}pp<extra></extra>",
     showlegend=False
 ))
 
@@ -158,9 +158,9 @@ for i, row in df.iterrows():
 fig.add_shape(
     type="rect",
     xref="x", yref="paper",
-    x0=0, x1=4.5,
+    x0=0, x1=6,
     y0=0, y1=1,
-    fillcolor="red",
+    fillcolor="green",
     opacity=0.04,
     layer="below",
     line_width=0
@@ -168,9 +168,9 @@ fig.add_shape(
 fig.add_shape(
     type="rect",
     xref="x", yref="paper",
-    x0=4.5, x1=9,
+    x0=6, x1=12,
     y0=0, y1=1,
-    fillcolor="green",
+    fillcolor="red",
     opacity=0.04,
     layer="below",
     line_width=0
@@ -202,7 +202,7 @@ fig.update_layout(
             align="left"
         ),
         dict(
-            text="<b>Currency:</b> Official exchange rate of the local currency to EUR.",
+            text="<b>Currency:</b> Official exchange rate 2023 of the local currency to EUR.",
             xref="paper",
             yref="paper",
             x=0,
@@ -224,9 +224,9 @@ fig.update_layout(
     ],
     xaxis=dict(
         title="<b>Income-Wealth Ratio</b>",
-        range=[0, 9],
-        tickvals=[i *  3 / 2 for i in range(7)],
-        ticktext=[f"{int(i * 3 / 2)}" for i in range(7)],
+        range=[0, 12],
+        tickvals=[i *  4 / 2 for i in range(7)],
+        ticktext=[f"{int(i * 4 / 2)}" for i in range(7)],
         showline=True,
         linewidth=1,
         linecolor="black",
@@ -289,4 +289,3 @@ fig.write_image("C:/Users/guillem.maya/Desktop/FIG_WID_CapitalisBack_Flag.png")
 
 # Show the plot!
 fig.show()
-
