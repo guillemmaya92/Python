@@ -14,7 +14,7 @@ import matplotlib.patches as patches
 # Manual Data
 # ===================================================
 # BTC Price
-btcprice = 100000
+btcprice = 105000
 
 # Create dataframe
 data = {
@@ -55,8 +55,8 @@ for index, row in df.iterrows():
 # Crear a dataframe with all values
 df = pd.DataFrame(result, columns=['btc'])
 
-# Crear a dataframe with all values
-df = pd.DataFrame(result, columns=['btc'])
+# Calculate marketcap
+marketcap = df['btc'].sum() * btcprice
 
 # USD Value, Filter >5000 and count
 df['usd'] = df['btc'] * btcprice
@@ -192,6 +192,17 @@ ax1.text(
     ha='right',
     va='top', 
     bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white')
+)
+
+# Show MarketCap
+ax1.text(
+    0.05, 0.88, 
+    f"Price: ${btcprice / 1e3:.0f} k\nMCap: ${marketcap / 1e12:.2f} Bn", 
+    transform=ax1.transAxes,
+    fontsize=8.5,
+    color='black',
+    ha='center',
+    va='top'
 )
 
 # Second Plot
