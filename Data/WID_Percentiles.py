@@ -18,7 +18,7 @@ df_countries = df.rename(columns={'index': 'ISO3'})
 # Data Extraction
 # ===================================================
 # Define CSV path
-path = r'C:\Users\guill\Downloads\data\ALL'
+path = r'C:\Users\guill\Downloads\data'
 
 # List to save dataframe
 list = []
@@ -80,5 +80,4 @@ df = pd.merge(df, dfi, on=['country', 'percentile'], how='inner')
 df['income'] = np.where(df['income'].isna(), df['income_null'], df['income'])
 df = df[['country', 'year', 'percentile', 'wealth', 'income']]
 
-df.to_parquet(r'C:\Users\guill\Downloads\data\CHECK\data.parquet', engine='pyarrow')
-
+df.to_parquet(r'C:\Users\guill\Downloads\data\WID_Percentiles.parquet', engine='pyarrow')
