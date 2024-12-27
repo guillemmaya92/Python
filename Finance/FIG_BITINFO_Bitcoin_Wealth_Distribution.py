@@ -5,15 +5,25 @@ import numpy as np
 from bs4 import BeautifulSoup
 import requests
 from io import StringIO
-from scipy.interpolate import interp1d
-import seaborn as sns
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FuncFormatter
 import matplotlib.patches as patches
 
-# Manual Data
+# Bitcoin Price
 # ===================================================
-btcprice = 100000
+url = "https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD"
+response = requests.get(url)
+data = response.json()
+btcprice = data.get("USD")
+
+# Bitcoin Supply
+# ===================================================
+def get_btc_supply():
+    response = requests.get("https://blockchain.info/q/totalbc")
+    satoshi = int(response.text)
+    btcsupply = satoshi / 100000000
+    return btcsupply
+btcsupply = get_btc_supply()
 
 # Data Extraction
 # ===================================================
@@ -25,41 +35,58 @@ df = pd.read_html(StringIO(str(table)))[0]
 # Data Transformation
 # ===================================================
 # Select columns
-df = df[['Balance, BTC', 'Addresses']]
+df = df[['Balance, BTC', 'Addresses', 'BTC']]
+
+# Rename columns and add average
+df.rename(columns={'Addresses': 'rows', 'BTC': 'btc'}, inplace=True)
 
 # Extract start and end range
-df['Start'] = df['Balance, BTC'].str.extract(r'[\[\(](\d[\d,\.]*)')
-df['End'] = df['Balance, BTC'].str.extract(r'-\s([\d,\.]+)\)')
+df['start'] = df['Balance, BTC'].str.extract(r'[\[\(](\d[\d,\.]*)')
+df['end'] = df['Balance, BTC'].str.extract(r'-\s([\d,\.]+)\)')
+df['btc'] = df['btc'].str.extract('([0-9.]+)')
 
 # Convert to values
-df['Addresses'] = df['Addresses'].replace({',': ''}, regex=True).astype(int)
-df['Start'] = df['Start'].replace({',': ''}, regex=True).astype(float)
-df['End'] = df['End'].replace({',': ''}, regex=True).astype(float)
+df['rows'] = df['rows'].replace({',': ''}, regex=True).astype(int)
+df['start'] = df['start'].replace({',': ''}, regex=True).astype(float)
+df['end'] = df['end'].replace({',': ''}, regex=True).astype(float)
+df['btc'] = df['btc'].replace({',': ''}, regex=True).astype(float)
+
+# Add average price
+df['average'] = df['btc'] / df['rows']
 
 # Select columns
-df = df[['Addresses', 'Start', 'End']]
+df = df[['rows', 'start', 'end', 'btc', 'average']]
 
 # Change first and last value
-df.loc[df.index[0], 'Start'] = 0.000001
-df.loc[df.index[-1], 'End'] = 250000
+df.loc[df.index[0], 'start'] = 0.000001
+df.loc[df.index[-1], 'end'] = 250000
 
 # Create a list
 result = []
 
 # Iterate over each row 
 for index, row in df.iterrows():
-    n = int(row['Addresses'])
-    start = row['Start']
-    end = row['End']
+    n = int(row['rows'])
+    start = row['start']
+    end = row['end']
+    average = row['average']
     
     # Generate a distribution
-    valores = np.logspace(np.log10(start), np.log10(end), n)
+    valores = np.logspace(np.log(start) / np.log(12), np.log(end) / np.log(12), n)
         
+   # Calcular el factor de escala para ajustar el promedio
+    current_average = np.mean(valores)
+    scale_factor = average / current_average
+    adjusted_values = valores * scale_factor
+
     # Add values to result list
     result.extend(valores)
 
 # Crear a dataframe with all values
 df = pd.DataFrame(result, columns=['btc'])
+
+# Calculate marketcap
+marketcap = btcsupply * btcprice
 
 # USD Value, Filter >5000 and count
 df['usd'] = df['btc'] * btcprice
@@ -144,9 +171,9 @@ ax1.set_ylabel('Wealth ($)', fontsize=10, weight='bold')
 # Configuration
 ax1.grid(axis='x', linestyle='-', alpha=0.5, zorder=1)
 ax1.set_xlim(0, 101)
-ax1.set_ylim(0, 3000000)
+ax1.set_ylim(0, 2000000)
 ax1.set_xticks(np.arange(0, 101, step=10))
-ax1.set_yticks(np.arange(0, 3000001, step=500000))
+ax1.set_yticks(np.arange(0, 2000001, step=250000))
 ax1.tick_params(axis='x', labelsize=10)
 ax1.tick_params(axis='y', labelsize=10)
 ax1.spines['top'].set_visible(False)
@@ -164,18 +191,18 @@ ax1.xaxis.set_major_formatter(FuncFormatter(lambda x, _: f'{x:.0f}%'))
 ax1.yaxis.set_major_formatter(FuncFormatter(format_func))
 
 # Lines and area to separate outliers
-ax1.axhline(y=2770000, color='black', linestyle='--', linewidth=0.5, zorder=4)
-ax1.axhline(y=2730000, color='black', linestyle='--', linewidth=0.5, zorder=4)
-ax1.add_patch(patches.Rectangle((0, 2730000), 105, 40000, linewidth=0, edgecolor='none', facecolor='white', zorder=3))
+ax1.axhline(y=1850000, color='black', linestyle='--', linewidth=0.5, zorder=4)
+ax1.axhline(y=1800000, color='black', linestyle='--', linewidth=0.5, zorder=4)
+ax1.add_patch(patches.Rectangle((0, 1800000), 105, 50000, linewidth=0, edgecolor='none', facecolor='white', zorder=3))
 
 # Y Axis modify the outlier value
 labels = [item.get_text() for item in ax1.get_yticklabels()]
-labels[-1] = '31M'
+labels[-1] = '17M'
 ax1.set_yticklabels(labels)
 
 # Show labels each 10 percentile
 for i, (bar, value) in enumerate(zip(bars, df['average_usd'])):
-    value_rounded = round(value, -3)
+    value_rounded = round(value / 5000) * 5000
     if i % 10 == 0:
         ax1.text(bar.get_x() + bar.get_width() / 2, 
                  abs(bar.get_height()) * 1.4 + 50000,
@@ -195,6 +222,17 @@ ax1.text(
     ha='right',
     va='top', 
     bbox=dict(boxstyle="round,pad=0.3", edgecolor='gray', facecolor='white')
+)
+
+# Show MarketCap
+ax1.text(
+    0.05, 0.88, 
+    f"Price: ${btcprice / 1e3:.0f} k\nMCap: ${marketcap / 1e12:.2f} Bn", 
+    transform=ax1.transAxes,
+    fontsize=8.5,
+    color='black',
+    ha='center',
+    va='top'
 )
 
 # Second Plot
