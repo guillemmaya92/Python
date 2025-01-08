@@ -186,3 +186,4 @@ gg <- df %>%
 
 # Saving Plot
 ggsave("C:/Users/guill/Downloads/Barcelonés.jpeg", 
+       plot = gg, dpi = 300, width = 10, height = 6)
