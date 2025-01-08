@@ -1,4 +1,4 @@
-# Libraries
+    # Libraries
 # ===================================
 library(readr)
 library(dplyr)
@@ -19,7 +19,7 @@ df <- read_delim(url, delim = ";", locale = locale(encoding = "latin1"))
 # Select relevant columns and filter data
 df <- df %>%
   select(province, region, price) %>%
-  filter(region %in% c("Barcelonès") & price <= 2000) %>%
+  filter(region %in% c("Barcelonès") & price < 3000) %>%
   filter(!is.na(price))
 
 # Transform Data
@@ -28,7 +28,7 @@ df <- df %>%
 min_price <- 0
 cheaper_price <- 800
 median_price <- median(df$price, na.rm = TRUE)
-max_price <- 2000
+max_price <- 3000
 total_announcements <- nrow(df)
 
 # Calculate extra label values
@@ -61,7 +61,7 @@ gg <- df %>%
   )))) +
   # Define type of plot
   geom_dots(
-    smooth = smooth_bounded(adjust = 0.8), 
+    smooth = smooth_bounded(adjust = 0.6), 
     side = "both", 
     color = NA,
     dotsize = 0.8,
@@ -76,8 +76,8 @@ gg <- df %>%
   scale_y_continuous(breaks = NULL) +
   # Configure Titles and Captions
   labs(
-    title = 'Pisos ofertados en Idealista por menos de 2.000 euros',
-    subtitle = "Anuncios en la comarca del Barcelonès",
+    title = 'Pisos ofertados en Idealista por menos de 3.000 euros',
+    subtitle = "Anuncios en la comarca del Barcelonés",
     x = "Precio (€)",
     caption = paste0(
       "**Fuente**: Idealista<br>
@@ -96,7 +96,7 @@ gg <- df %>%
     panel.grid.major.y = element_blank(),
     panel.grid.minor.y = element_blank(),
     legend.position = "none",
-    plot.caption = element_markdown(size = 9, hjust = 0)
+    plot.caption = element_markdown(size = 8, hjust = 0)
   ) +
  # Configure fill colors after_stats
   scale_fill_manual(values = c(
@@ -112,16 +112,16 @@ gg <- df %>%
   annotate("text", 
            x = 0, 
            y = 0.05, 
-           label = "Barcelonès", 
+           label = "Barcelonés", 
            size = 4, 
            color = "black", 
            fontface = "bold", 
            hjust = 0) +
   annotate("text", 
            x = 0, 
-           y = -0.05, 
-           label = paste("Total anuncios:", comma(total_announcements)), 
-           size = 4, 
+           y = -0.08, 
+           label = paste("Total anuncios:\n", comma(total_announcements)), 
+           size = 3.5, 
            color = "black", 
            fontface = "plain", 
            hjust = 0) +
@@ -178,12 +178,11 @@ gg <- df %>%
            color = "#909090") +
   # Extra Annotation: @Author
   annotation_custom(
-    grob = textGrob("@damnedliestats", gp = gpar(fontsize = 9, col = "black")), 
-    xmin = 1800, xmax = 2000, ymin = -0.75, ymax = -0.75
+    grob = textGrob("@damnedliestats", gp = gpar(fontsize = 8, col = "black")), 
+    xmin = 2600, xmax = 3000, ymin = -0.73, ymax = -0.73
   ) +
   # Allow extra elements
   coord_cartesian(clip = "off")
 
 # Saving Plot
-ggsave("C:/Users/guillem.maya/Downloads/grafico.jpeg", 
-       plot = gg, dpi = 300, width = 10, height = 6)
+ggsave("C:/Users/guill/Downloads/Barcelonés.jpeg", 
