@@ -20,7 +20,7 @@ df = df.rename(columns={'geo\\TIME_PERIOD': 'geo'})
 # GEOPANDAS Data
 # ======================================
 # Read GEOJSON file
-geojson_url = "https://r2.datahub.io/clt98mkvt000ql70811z8xj6l/main/raw/data/NUTS_RG_60M_2024_4326_LEVL_2.geojson"
+geojson_url = "https://gisco-services.ec.europa.eu/distribution/v2/nuts/geojson/NUTS_RG_60M_2021_4326_LEVL_2.geojson"
 gdf = gpd.read_file(geojson_url)
 
 # Merge dataframes
@@ -92,19 +92,25 @@ ax.text(1, 1.06, f'{formatted_date}',
 # Add Data Source
 plt.text(0, -0.1, 'Data Source: Eurostat (2024), GDP and main components (output, expenditure and income)', 
     transform=plt.gca().transAxes, 
-    fontsize=8, 
+    fontsize=8,
+    fontweight = 'bold',
     color='gray')
 
 # Add Notes
-plt.text(0, -0.12, 'Notes: Gross domestic product (GDP) at current market prices by NUTS 3 region', 
+plt.text(0, -0.12, 'Notes: Gross domestic product (GDP) at current market prices by NUTS 2 region', 
     transform=plt.gca().transAxes,
     fontsize=8, 
     color='gray')
+
+# Add author
+plt.text(1, -0.1, '@guillemmaya.com', 
+    transform=plt.gca().transAxes, 
+    fontsize=8, 
+    color='#212121', 
+    ha='right')
 
 # Save it!
 plt.savefig('C:/Users/guill/Downloads/FIG_EUROSTAT_Map_GDP.png', format='png', bbox_inches='tight')
 
 # Plot it!
 plt.show()
-
-
